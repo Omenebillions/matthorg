@@ -1,0 +1,175 @@
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:28.247Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:28.249Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:28.250Z] Checked if tokens are valid: false, expires at: 1771108002228
+[debug] [2026-02-14T23:33:28.251Z] Checked if tokens are valid: false, expires at: 1771108002228
+[debug] [2026-02-14T23:33:28.251Z] > refreshing access token with scopes: []
+[debug] [2026-02-14T23:33:28.260Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-14T23:33:28.260Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-14T23:33:28.264Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:28.265Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:28.265Z] Checked if tokens are valid: false, expires at: 1771108002228
+[debug] [2026-02-14T23:33:28.266Z] Checked if tokens are valid: false, expires at: 1771108002228
+[debug] [2026-02-14T23:33:28.266Z] > refreshing access token with scopes: []
+[debug] [2026-02-14T23:33:28.267Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-14T23:33:28.267Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-14T23:33:28.332Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-14T23:33:28.332Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-14T23:33:28.354Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo [none]
+[debug] [2026-02-14T23:33:28.359Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-14T23:33:28.359Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-14T23:33:28.382Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo [none]
+[debug] [2026-02-14T23:33:28.653Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo 200
+[debug] [2026-02-14T23:33:28.655Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo {"name":"projects/matthorg-8e229/billingInfo","projectId":"matthorg-8e229","billingAccountName":"","billingEnabled":false}
+[debug] [2026-02-14T23:33:28.667Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.669Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.670Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.670Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.670Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.670Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.671Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.671Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.671Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.672Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.672Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.672Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.672Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.673Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.693Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.693Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.693Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.694Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:28.694Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.694Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.697Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.697Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.699Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.699Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.702Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.702Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.704Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.704Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.706Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.706Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.709Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.709Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.711Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-02-14T23:33:28.711Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:28.713Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com [none]
+[debug] [2026-02-14T23:33:28.714Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.022Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo 200
+[debug] [2026-02-14T23:33:29.022Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo {"name":"projects/matthorg-8e229/billingInfo","projectId":"matthorg-8e229","billingAccountName":"","billingEnabled":false}
+[debug] [2026-02-14T23:33:29.031Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.032Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.032Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.032Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.035Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.035Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.035Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.036Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.046Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.047Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.047Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.047Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.048Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.048Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.050Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.050Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.053Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.053Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.057Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.057Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.059Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.059Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.062Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.062Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.064Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.064Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.066Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com [none]
+[debug] [2026-02-14T23:33:29.066Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.068Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com [none]
+[debug] [2026-02-14T23:33:29.069Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com  x-goog-user-project=matthorg-8e229
+[debug] [2026-02-14T23:33:29.437Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com 403
+[debug] [2026-02-14T23:33:29.437Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com [omitted]
+[debug] [2026-02-14T23:33:29.466Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com 200
+[debug] [2026-02-14T23:33:29.466Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.481Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-02-14T23:33:29.481Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.488Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com 200
+[debug] [2026-02-14T23:33:29.489Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.506Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com 200
+[debug] [2026-02-14T23:33:29.506Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.540Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com 200
+[debug] [2026-02-14T23:33:29.541Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.546Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-02-14T23:33:29.546Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.555Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com 200
+[debug] [2026-02-14T23:33:29.556Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.568Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com 200
+[debug] [2026-02-14T23:33:29.569Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.584Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com 200
+[debug] [2026-02-14T23:33:29.584Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com [omitted]
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:29.613Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:29.613Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:29.613Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.613Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:29.614Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo [none]
+[debug] [2026-02-14T23:33:29.755Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com 403
+[debug] [2026-02-14T23:33:29.759Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseio.com [omitted]
+[debug] [2026-02-14T23:33:29.812Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com 200
+[debug] [2026-02-14T23:33:29.812Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/identitytoolkit.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.847Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com 200
+[debug] [2026-02-14T23:33:29.847Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/fcm.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.857Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com 200
+[debug] [2026-02-14T23:33:29.858Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebaseremoteconfig.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.869Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-02-14T23:33:29.869Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.894Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com 200
+[debug] [2026-02-14T23:33:29.897Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/storage.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.910Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com 200
+[debug] [2026-02-14T23:33:29.910Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/firestore.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:29.916Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com 200
+[debug] [2026-02-14T23:33:29.916Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/matthorg-8e229/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-02-14T23:33:30.204Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo 200
+[debug] [2026-02-14T23:33:30.204Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo {"name":"projects/matthorg-8e229/billingInfo","projectId":"matthorg-8e229","billingAccountName":"","billingEnabled":false}
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:30.207Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:30.207Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:30.263Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:30.263Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:30.264Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:30.268Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:30.268Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo [none]
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:30.296Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:30.296Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:30.296Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:30.296Z] Checked if tokens are valid: true, expires at: 1771115607359
+[debug] [2026-02-14T23:33:30.296Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo [none]
+[debug] [2026-02-14T23:33:30.410Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo 200
+[debug] [2026-02-14T23:33:30.410Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo {"name":"projects/matthorg-8e229/billingInfo","projectId":"matthorg-8e229","billingAccountName":"","billingEnabled":false}
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:30.412Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:30.412Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)
+[debug] [2026-02-14T23:33:30.464Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo 200
+[debug] [2026-02-14T23:33:30.464Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/matthorg-8e229/billingInfo {"name":"projects/matthorg-8e229/billingInfo","projectId":"matthorg-8e229","billingAccountName":"","billingEnabled":false}
+[error] Failed to fetch Firebase Project from Studio Workspace because WORKSPACE_SLUG environment variable is empty
+[debug] [2026-02-14T23:33:30.467Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2026-02-14T23:33:30.467Z] > authorizing via signed-in user (tintvillenigeria@gmail.com)

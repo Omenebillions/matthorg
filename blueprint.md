@@ -1,50 +1,34 @@
-
-# MattHorg - SaaS Business Management Platform
+# Blueprint: MatthOrg Business Platform
 
 ## Overview
 
-This document outlines the architecture and features of MattHorg, a comprehensive SaaS platform designed to help businesses manage their operations, staff, and finances. The platform is built on a multi-tenant architecture, providing each organization with a secure and isolated environment.
+MatthOrg is an all-in-one platform to help businesses run their operations. It provides a centralized dashboard to manage staff, tasks, sales, projects, and more, aiming to streamline workflows and boost productivity.
 
-## Core Features
+## Style, Design, and Features
 
-### 1. Multi-Tenant Architecture
-- Each organization receives a unique subdomain (e.g., `my-business.matthorg.com`).
-- Data is securely partitioned to ensure that each organization can only access its own information.
+### Visual Design
+*   **Palette:** Primary color is a vibrant blue (`#3B82F6`), complemented by a neutral gray scale for text and backgrounds.
+*   **Typography:** Clean, modern sans-serif font.
+*   **Layout:** Responsive design with a consistent sidebar navigation for main features and a main content area.
+*   **Components:** Utilizes cards with shadows, clear iconography, and charts for data visualization.
 
-### 2. CEO Dashboard
-- A real-time, centralized dashboard that provides a high-level overview of the entire business.
-- Key metrics include:
-    - Number of open tasks.
-    - Number of jobs in progress.
-    - Recent sales activity.
-    - Staff attendance.
+### Core Features
+*   **Authentication:** Secure login and user management handled by Supabase.
+*   **Sidebar Navigation:** A persistent sidebar provides easy access to all major sections of the application:
+    *   Dashboard
+    *   Tasks & Milestones
+    *   Jobs & Service Requests
+    *   Sales & Revenue
+    *   Staff Management
+    *   Clock-ins
+*   **Dashboard:** A central hub displaying key metrics and recent activity.
 
-### 3. Tasks & Milestones
-- **Create, Edit, and Delete Tasks:** Users can create, update, and remove tasks.
-- **Assign Tasks:** Tasks can be assigned to specific staff members.
-- **Set Due Dates and Statuses:** Each task can have a due date and a status (e.g., "Pending," "In Progress," "Completed").
-- **Define Milestones:** Managers can create project milestones to group related tasks.
+## Current Plan: Recreate and Consolidate Dashboard
 
-### 4. Jobs & Service Requests
-- **Create, Edit, and Delete Jobs:** Users can log, update, and remove client jobs.
-- **Track Job Status:** Jobs can be tracked through various stages (e.g., "Scheduled," "In Progress," "Completed").
-- **Assign Jobs:** Jobs can be assigned to one or more staff members.
+To resolve a build error caused by conflicting files, I will create a single, unified dashboard.
 
-### 5. Sales & Revenue Management
-- **Log Sales:** Users can record new sales, including the item sold and the amount.
-- **Transaction History:** A comprehensive list of all sales transactions is available.
-
-### 6. Staff Management
-- **Invite Staff:** Managers can send email invitations to new users.
-- **Team Overview:** A centralized view of all staff members in the organization.
-- **360-Degree Staff Profiles:** Detailed profiles for each staff member, showing their assigned tasks and jobs.
-
-### 7. Clock-in / Attendance
-- **Simple Clock-in/Clock-out:** Staff can easily clock in and out to record their work hours.
-- **Live Attendance Log:** A real-time view of who is currently clocked in and their attendance history for the day.
-
-## Design and UI/UX
-
-- **Modern and Intuitive:** The platform features a clean, modern design with a focus on ease of use.
-- **Responsive:** The UI is fully responsive and works seamlessly on both desktop and mobile devices.
-- **Consistent Navigation:** A consistent sidebar navigation is present across all modules, providing a predictable user experience.
+*   **Goal:** Implement a functional and well-designed dashboard at the `/dashboard` route.
+*   **Step 1:** Remove the conflicting dashboard files from the `app/` directory.
+*   **Step 2:** Create a new dashboard layout at `src/app/dashboard/layout.tsx` to provide consistent navigation and structure.
+*   **Step 3:** Create the main dashboard page at `src/app/dashboard/page.tsx` to display key business metrics and data visualizations.
+*   **Step 4:** Verify the implementation by running the linter and checking for any errors.
