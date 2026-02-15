@@ -74,13 +74,6 @@ const features = [
   }
 ];
 
-const stats = [
-  { label: "Active Organizations", value: "500+" },
-  { label: "Processes Automated", value: "10K+" },
-  { label: "Data Processed", value: "2.5M+" },
-  { label: "Avg. Efficiency Gain", value: "47%" }
-];
-
 export default function HomePage() {
   const { scrollYProgress } = useScroll();
   const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.95]);
@@ -88,7 +81,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0A0A0A]">
-      {/* Premium Header */}
+      {/* Premium Header with updated navigation */}
       <motion.header 
         style={{ opacity: headerOpacity, backdropFilter: `blur(${headerBlur}px)` }}
         className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A0A0A]/80"
@@ -107,7 +100,7 @@ export default function HomePage() {
             
             <nav className="flex items-center space-x-8">
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Features
+                Feature
               </Link>
               <Link href="/solutions" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Solutions
@@ -140,7 +133,7 @@ export default function HomePage() {
         </div>
       </motion.header>
 
-      {/* Hero Section */}
+      {/* Updated Hero Section with new content */}
       <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[#0A0A0A]">
@@ -150,23 +143,12 @@ export default function HomePage() {
         </div>
 
         <div className="container mx-auto px-6 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-6"
-            >
-              <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
-                Introducing MatthOrg Enterprise 2.0
-              </span>
-            </motion.div>
-            
+          <div className="max-w-5xl mx-auto">
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8"
+              transition={{ duration: 0.6 }}
+              className="text-7xl md:text-8xl lg:text-9xl font-bold mb-8 leading-tight"
             >
               <span className="text-white">The Operating System for</span>
               <br />
@@ -178,18 +160,18 @@ export default function HomePage() {
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-xl text-gray-400 mb-10 max-w-3xl"
             >
-              Unify operations, finance, HR, and workflow automation in a single, 
+              Unity operations, finances, HR, and workflow automation in a single 
               intelligent platform built for multi-tenant enterprises.
             </motion.p>
             
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex flex-col sm:flex-row gap-4 mb-16"
             >
               <Link
                 href="/dashboard"
@@ -209,25 +191,47 @@ export default function HomePage() {
               </Link>
             </motion.div>
 
-            {/* Stats */}
+            {/* Updated Stats Grid */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20"
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12"
             >
-              {stats.map((stat, idx) => (
-                <div key={idx} className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-sm text-gray-500">{stat.label}</div>
-                </div>
-              ))}
+              <div className="text-left">
+                <div className="text-4xl font-bold text-white mb-1">2.3M+</div>
+                <div className="text-sm text-gray-500">Active Organisations</div>
+              </div>
+              <div className="text-left">
+                <div className="text-4xl font-bold text-white mb-1">0.9M+</div>
+                <div className="text-sm text-gray-500">Data Processor</div>
+              </div>
+              <div className="text-left">
+                <div className="text-4xl font-bold text-white mb-1">10K+</div>
+                <div className="text-sm text-gray-500">Processes Automated</div>
+              </div>
+              <div className="text-left">
+                <div className="text-4xl font-bold text-white mb-1">47%</div>
+                <div className="text-sm text-gray-500">Avg. Efficiency Gain</div>
+              </div>
+            </motion.div>
+
+            {/* UK Badge */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-12 inline-flex items-center px-4 py-2 rounded-full bg-white/5 border border-white/10"
+            >
+              <span className="text-sm font-medium text-white">UK</span>
+              <span className="mx-2 text-gray-600">•</span>
+              <span className="text-sm text-gray-400">Enterprise Ready</span>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Features Grid (unchanged from previous premium version) */}
       <section className="relative py-32 bg-[#0A0A0A] border-t border-white/5">
         <div className="container mx-auto px-6">
           <motion.div
@@ -286,7 +290,7 @@ export default function HomePage() {
               Ready to transform your operations?
             </h2>
             <p className="text-xl text-gray-400 mb-10">
-              Join hundreds of organizations that have streamlined their business with MatthOrg.
+              Join millions of organizations that have streamlined their business with MatthOrg.
             </p>
             <Link
               href="/dashboard"
@@ -320,7 +324,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-2">
-                <li><Link href="/features" className="text-sm text-gray-500 hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="/features" className="text-sm text-gray-500 hover:text-white transition-colors">Feature</Link></li>
                 <li><Link href="/solutions" className="text-sm text-gray-500 hover:text-white transition-colors">Solutions</Link></li>
                 <li><Link href="/pricing" className="text-sm text-gray-500 hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link href="/enterprise" className="text-sm text-gray-500 hover:text-white transition-colors">Enterprise</Link></li>
