@@ -1,128 +1,104 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 
-// High-end feature set
-const features = [
-  {
-    title: "Unified Operations",
-    description: "Orchestrate workflows across departments with our intelligent automation engine.",
-    gradient: "from-blue-600 to-cyan-500"
-  },
-  {
-    title: "Financial Intelligence",
-    description: "Real-time revenue tracking and automated financial workflows for multi-tenant setups.",
-    gradient: "from-purple-600 to-indigo-500"
-  },
-  {
-    title: "Talent Management",
-    description: "Comprehensive HR tools from recruitment to performance tracking and onboarding.",
-    gradient: "from-emerald-600 to-teal-500"
-  }
-];
-
-export default function MatthOrgHome() {
+export default function ProfessionalHome() {
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-blue-500/30">
+    <div style={{ backgroundColor: "#050505", minHeight: "100vh", color: "white", fontFamily: "sans-serif" }}>
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-lg">M</div>
-            <span className="text-xl font-bold tracking-tight">MatthOrg</span>
+      <nav style={{ 
+        position: "fixed", top: 0, width: "100%", zIndex: 50, 
+        backgroundColor: "rgba(10, 10, 10, 0.8)", backdropFilter: "blur(10px)",
+        borderBottom: "1px solid rgba(255,255,255,0.1)" 
+      }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", height: "80px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ 
+              width: "35px", height: "35px", borderRadius: "8px", 
+              background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" 
+            }}>M</div>
+            <span style={{ fontSize: "1.25rem", fontWeight: "bold", letterSpacing: "-0.5px" }}>MatthOrg</span>
           </div>
           
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-            <Link href="#" className="hover:text-white transition-colors">Features</Link>
-            <Link href="#" className="hover:text-white transition-colors">Solutions</Link>
-            <Link href="#" className="hover:text-white transition-colors">Enterprise</Link>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button className="text-sm font-medium text-gray-400 hover:text-white">Sign in</button>
-            <button className="bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition-all">
-              Get Started
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <button style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer" }}>Sign in</button>
+            <button style={{ 
+              backgroundColor: "white", color: "black", padding: "10px 20px", 
+              borderRadius: "20px", fontWeight: "600", border: "none", cursor: "pointer" 
+            }}>Get Started</button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-24 overflow-hidden">
-        {/* Background Glows */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            Enterprise Ready
-          </motion.div>
+      <section style={{ paddingTop: "160px", paddingBottom: "80px", textAlign: "center", position: "relative" }}>
+        {/* Subtle Background Glow */}
+        <div style={{ 
+          position: "absolute", top: "0", left: "50%", transform: "translateX(-50%)",
+          width: "600px", height: "400px", backgroundColor: "rgba(59, 130, 246, 0.1)",
+          filter: "blur(100px)", borderRadius: "100%", zIndex: 0
+        }} />
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8"
-          >
-            The OS for <br />
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Modern Business
-            </span>
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="max-w-2xl mx-auto text-lg md:text-xl text-gray-400 mb-12 leading-relaxed"
-          >
-            A unified intelligence portal to orchestrate your workflow, financials, 
-            and talent management in one secure, multi-tenant environment.
-          </motion.p>
-
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "900px", margin: "0 auto", padding: "0 20px" }}>
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <button className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20">
-              Start Free Trial
-            </button>
-            <button className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all">
-              Book a Demo
-            </button>
+            style={{ 
+              display: "inline-block", padding: "5px 15px", borderRadius: "20px", 
+              backgroundColor: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.2)",
+              color: "#60a5fa", fontSize: "12px", fontWeight: "bold", marginBottom: "20px"
+            }}>
+            ENTERPRISE INTELLIGENCE PORTAL
           </motion.div>
-        </div>
-      </section>
 
-      {/* Feature Grid */}
-      <section className="py-24 border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((f, i) => (
-              <div key={i} className="p-8 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-blue-500/30 transition-all group">
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${f.gradient} mb-6 opacity-80 group-hover:opacity-100 transition-opacity`} />
-                <h3 className="text-xl font-bold mb-3">{f.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{f.description}</p>
-              </div>
-            ))}
+          <h1 style={{ fontSize: "clamp(2.5rem, 8vw, 5rem)", fontWeight: "800", lineHeight: "1.1", marginBottom: "20px" }}>
+            The Operating System for <br />
+            <span style={{ color: "#60a5fa" }}>Modern Business</span>
+          </h1>
+
+          <p style={{ fontSize: "1.25rem", color: "#9ca3af", maxWidth: "700px", margin: "0 auto 40px", lineHeight: "1.6" }}>
+            A unified portal to orchestrate your workflow, financials, and talent management 
+            in one secure, professional environment.
+          </p>
+
+          <div style={{ display: "flex", gap: "15px", justifyContent: "center", flexWrap: "wrap" }}>
+            <button style={{ 
+              padding: "15px 40px", fontSize: "1rem", fontWeight: "bold", borderRadius: "10px",
+              backgroundColor: "#2563eb", color: "white", border: "none", cursor: "pointer",
+              boxShadow: "0 10px 15px -3px rgba(37, 99, 235, 0.3)"
+            }}>Start Free Trial</button>
+            <button style={{ 
+              padding: "15px 40px", fontSize: "1rem", fontWeight: "bold", borderRadius: "10px",
+              backgroundColor: "rgba(255,255,255,0.05)", color: "white", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer"
+            }}>Watch Demo</button>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} MatthOrg, Inc. All rights reserved.</p>
+      {/* Features Grid */}
+      <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px" }}>
+          {[
+            { title: "Unified Operations", desc: "Orchestrate workflows across all departments with intelligent automation.", color: "#3b82f6" },
+            { title: "Financial Intelligence", desc: "Real-time revenue tracking and automated financial reporting.", color: "#8b5cf6" },
+            { title: "Talent Management", desc: "Complete HR lifecycle management from recruitment to payroll.", color: "#10b981" }
+          ].map((feature, i) => (
+            <div key={i} style={{ 
+              padding: "40px", borderRadius: "20px", backgroundColor: "#0f0f0f",
+              border: "1px solid rgba(255,255,255,0.05)"
+            }}>
+              <div style={{ width: "40px", height: "5px", backgroundColor: feature.color, marginBottom: "20px", borderRadius: "10px" }} />
+              <h3 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "15px" }}>{feature.title}</h3>
+              <p style={{ color: "#9ca3af", lineHeight: "1.6" }}>{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <footer style={{ textAlign: "center", padding: "40px", borderTop: "1px solid rgba(255,255,255,0.05)", color: "#4b5563", fontSize: "14px" }}>
+        &copy; 2026 MatthOrg, Inc. All rights reserved.
       </footer>
     </div>
   );
