@@ -14,21 +14,18 @@ MatthOrg is an all-in-one platform to help businesses run their operations. It p
 
 ### Core Features
 *   **Authentication:** Secure login and user management handled by Supabase.
-*   **Sidebar Navigation:** A persistent sidebar provides easy access to all major sections of the application:
-    *   Dashboard
-    *   Tasks & Milestones
-    *   Jobs & Service Requests
-    *   Sales & Revenue
-    *   Staff Management
-    *   Clock-ins
+*   **Sidebar Navigation:** A persistent sidebar provides easy access to all major sections of the application.
 *   **Dashboard:** A central hub displaying key metrics and recent activity.
 
-## Current Plan: Recreate and Consolidate Dashboard
+## Current Plan: Implement User Registration and Admin Role
 
-To resolve a build error caused by conflicting files, I will create a single, unified dashboard.
+To add the missing sign-up functionality and establish an owner role, I will implement the following:
 
-*   **Goal:** Implement a functional and well-designed dashboard at the `/dashboard` route.
-*   **Step 1:** Remove the conflicting dashboard files from the `app/` directory.
-*   **Step 2:** Create a new dashboard layout at `src/app/dashboard/layout.tsx` to provide consistent navigation and structure.
-*   **Step 3:** Create the main dashboard page at `src/app/dashboard/page.tsx` to display key business metrics and data visualizations.
-*   **Step 4:** Verify the implementation by running the linter and checking for any errors.
+*   **Goal:** Create a user registration flow where the first user of an organization becomes its administrator.
+*   **Step 1:** Create a new registration page at `/signup` with a form to collect user details and a new organization's name.
+*   **Step 2:** Develop a Server Action to handle the sign-up logic:
+    *   Create the new user in Supabase Auth.
+    *   Create a new organization associated with the user.
+    *   Assign the user an 'owner' role and link them to the new organization.
+*   **Step 3:** Update the login page to include a link to the new registration page.
+*   **Step 4:** Secure the application by ensuring only the organization's owner (you) can invite new staff members.

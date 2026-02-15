@@ -1,6 +1,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const handleSignIn = async (formData: FormData) => {
@@ -25,6 +26,26 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+        <Link
+            href="/"
+            className="absolute left-4 top-4 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
+        >
+            <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1"
+            >
+            <polyline points="15 18 9 12 15 6" />
+            </svg>{' '}
+            Back
+        </Link>
         <h1 className="text-2xl font-bold text-center text-gray-900">Sign in to your account</h1>
         <form action={handleSignIn} className="space-y-6">
           <div>
@@ -64,6 +85,11 @@ export default function LoginPage() {
               Sign in
             </button>
           </div>
+          <div className="text-sm text-center">
+              <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+                  Don&apos;t have an account? Sign up
+              </Link>
+            </div>
         </form>
       </div>
     </div>
