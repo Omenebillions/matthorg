@@ -1,29 +1,24 @@
+// /src/app/dashboard/Cards.tsx
+'use client'
 import {
   BanknotesIcon,
   ClockIcon,
   UserGroupIcon,
   InboxIcon,
 } from '@heroicons/react/24/outline';
+import React from 'react'
 
-const iconMap = {
-  collected: BanknotesIcon,
-  customers: UserGroupIcon,
-  pending: ClockIcon,
-  invoices: InboxIcon,
-};
+interface CardProps {
+  title: string
+  value: number | string
+  color?: string
+}
 
-export function Card({ title, value, type }: { title: string; value: number | string; type: 'invoices' | 'customers' | 'pending' | 'collected' }) {
-  const Icon = iconMap[type];
-
+export default function Card({ title, value, color = 'bg-white' }: CardProps) {
   return (
-    <div className="rounded-xl bg-gray-50 p-2 shadow-sm">
-      <div className="flex p-4">
-        {Icon ? <Icon className="h-5 w-5 text-gray-700" /> : null}
-        <h3 className="ml-2 text-sm font-medium">{title}</h3>
-      </div>
-      <p className="truncate rounded-xl bg-white px-4 py-8 text-center text-2xl">
-        {value}
-      </p>
+    <div className={`${color} p-6 rounded-2xl shadow-md`}>
+      <h2 className="text-gray-500 text-sm font-semibold mb-2">{title}</h2>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
     </div>
-  );
+  )
 }

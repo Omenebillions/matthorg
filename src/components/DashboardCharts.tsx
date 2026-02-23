@@ -1,24 +1,37 @@
-"use client"; // This is the crucial line
+"use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-interface DashboardChartsProps {
-  data: { name: string; sales: number }[];
+export interface DashboardChartsProps {
+  stats: {
+    totalSales: number;
+    totalExpenses: number;
+    inventoryCount: number;
+    pendingTasks: number;
+    attendanceToday: number;
+  };
 }
 
-export default function DashboardCharts({ data }: DashboardChartsProps) {
+const DashboardCharts = ({ stats }: DashboardChartsProps) => {
   return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="sales" fill="#3B82F6" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Total Sales */}
+      <div className="p-4 bg-white rounded shadow">
+        <h3 className="text-lg font-semibold mb-2">Total Sales</h3>
+        <p className="text-2xl font-bold">{stats.totalSales}</p>
+      </div>
+
+      {/* Total Expenses */}
+      <div className="p-4 bg-white rounded shadow">
+        <h3 className="text-lg font-semibold mb-2">Total Expenses</h3>
+        <p className="text-2xl font-bold">{stats.totalExpenses}</p>
+      </div>
+
+      {/* Inventory Count */}
+      <div className="p-4 bg-white rounded shadow">
+        <h3 className="text-lg font-semibold mb-2">Inventory Count</h3>
+        <p className="text-2xl font-bold">{stats.inventoryCount}</p>
+      </div>
     </div>
   );
-}
+};
+
+export default DashboardCharts;
