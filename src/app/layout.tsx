@@ -1,9 +1,13 @@
-
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+// Optimized font loading for Next.js 16
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap', // Ensures text is visible immediately
+  variable: '--font-inter', // Allows you to use it in CSS if needed
+})
 
 export const metadata: Metadata = {
   title: 'MatthOrg - The All-in-One Business Platform',
@@ -16,8 +20,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={inter.variable}>
+      <body className={`${inter.className} antialiased`}>
+        {children}
+      </body>
     </html>
   )
 }
