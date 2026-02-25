@@ -130,7 +130,7 @@ export default function SignupPage() {
 
       const { error: staffError } = await supabase.from("staff_profiles").insert({
         id: userId,
-        name: form.name,
+        full_name: form.name,
         email: form.email,
         role: "ceo",
         permissions: allPermissions,
