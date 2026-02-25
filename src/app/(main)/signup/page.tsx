@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation"; // Better than window.location
+import { useRouter } from "next/navigation";
 
 const supabase = createClient();
 
@@ -31,7 +31,7 @@ export default function SignupPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError(""); // Clear error on change
+    setError("");
   };
 
   const generateSubdomain = (name: string) =>
@@ -46,7 +46,7 @@ export default function SignupPage() {
       const finalIndustry = form.industry === "Other" ? form.other_industry : form.industry;
       const slug = generateSubdomain(form.company_name);
 
-      // 1️⃣ Create Supabase Auth User with Metadata (from Version A)
+      // 1️⃣ Create Supabase Auth User with Metadata
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -54,8 +54,12 @@ export default function SignupPage() {
           data: {
             full_name: form.name,
             company_name: form.company_name,
-            organization_slug: slug, // Critical for middleware!
-          }
+            organization_slug: slug,
+          },
+          // ✅ FIX: Add email redirect based on environment
+          emailRedirectTo: process.env.NODE_ENV === 'production'
+            ? 'https://matthorg.vercel.app/auth/callback'
+            : 'http://localhost:3000/auth/callback'
         }
       });
 
@@ -64,24 +68,30 @@ export default function SignupPage() {
       const userId = data.user?.id;
       if (!userId) throw new Error("User creation failed.");
 
-      // 2️⃣ Insert Organization (just slug from Version A)
+      // 2️⃣ Insert Organization
       const { data: org, error: orgError } = await supabase
         .from("organizations")
         .insert({
           user_id: userId,
           name: form.company_name,
           industry: finalIndustry,
-          subdomain: slug, // Just the slug, not the full domain
+          subdomain: slug,
         })
         .select()
         .single();
 
       if (orgError) {
         console.error("Org Error:", orgError);
+        
+        // ✅ Better error message for duplicate subdomain
+        if (orgError.code === '23505') {
+          throw new Error("This company name is already taken. Please choose another.");
+        }
+        
         throw new Error("Account created, but company setup failed. Please contact support.");
       }
 
-      // 3️⃣ Insert Staff Profile (with all permissions)
+      // 3️⃣ Insert Staff Profile
       const allPermissions = [
         "task:create", "task:assign", "task:view",
         "inventory:add", "inventory:view",
@@ -100,8 +110,12 @@ export default function SignupPage() {
 
       if (staffError) throw new Error("Profile setup failed.");
 
-      // 4️⃣ Success! Redirect to dashboard (using router from Version A)
-      router.push(`/workspaces/${slug}/dashboard`);
+      // 4️⃣ Show success message - user needs to verify email
+      setError(""); // Clear any errors
+      alert("Account created! Please check your email to verify your account before logging in.");
+      
+      // Redirect to login page
+      router.push("/login?message=Please verify your email");
       
     } catch (err: any) {
       setError(err.message);
@@ -118,7 +132,6 @@ export default function SignupPage() {
         transition={{ duration: 0.6 }}
         className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative overflow-hidden"
       >
-        {/* Background Glow - from Version B */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.2 }}
@@ -127,7 +140,6 @@ export default function SignupPage() {
         />
 
         <div className="relative z-10">
-          {/* Logo - from Version B */}
           <motion.img
             src="/logo.png"
             alt="MatthOrg Logo"
