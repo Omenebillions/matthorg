@@ -30,12 +30,11 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
-  // 2. Identify Domain - CORRECTED to mthorg.com
+  // 2. Identify Domain
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   const path = url.pathname
 
-  // ✅ FIXED: Using mthorg.com (your actual domain)
   const isMainDomain = hostname === "mthorg.com" || hostname === "www.mthorg.com" || hostname === "localhost:3000";
   
   let subdomain = null;
@@ -63,8 +62,7 @@ export async function middleware(request: NextRequest) {
     const orgSubdomain = (staff?.organizations as any)?.subdomain;
     if (orgSubdomain) {
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-      const rootDomain = isMainDomain ? hostname : 'mthorg.com';
-      return NextResponse.redirect(new URL(`${protocol}://${orgSubdomain}.${rootDomain}/dashboard`));
+      return NextResponse.redirect(new URL(`${protocol}://${orgSubdomain}.mthorg.com/dashboard`));
     }
   }
 
@@ -74,14 +72,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 6. REWRITE LOGIC - The magic that makes subdomains work
+  // 6. REWRITE LOGIC
   if (subdomain) {
-    // This transforms tidy.mthorg.com/dashboard -> /app/[subdomain]/dashboard
-    url.pathname = `/[subdomain]${path}`;
+    const rewritePath = `/[subdomain]${path}`;
+    url.pathname = rewritePath;
     
     const rewriteResponse = NextResponse.rewrite(url);
     
-    // Copy cookies to keep user logged in
+    // Copy cookies to the rewrite response
     response.cookies.getAll().forEach((cookie) => {
       rewriteResponse.cookies.set(cookie.name, cookie.value);
     });
@@ -92,6 +90,7 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// ⚡️ Config must be OUTSIDE the middleware function
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
