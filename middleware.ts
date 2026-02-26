@@ -26,57 +26,67 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // 1. Refresh session
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
+
+  // 2. Identify Domain - CORRECTED to mthorg.com
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   const path = url.pathname
 
-  // 1. Identify Subdomain
+  // ✅ FIXED: Using mthorg.com (your actual domain)
   const isMainDomain = hostname === "mthorg.com" || hostname === "www.mthorg.com" || hostname === "localhost:3000";
+  
   let subdomain = null;
   if (!isMainDomain) {
-    // Extract subdomain (e.g., "tidy" from "tidy.mthorg.com")
     subdomain = hostname.split('.')[0];
   }
 
-  // 2. Handle Static/API routes
+  // 3. Handle Static/API routes
   if (path.startsWith('/_next') || path.includes('.') || path.startsWith('/api')) {
     return response;
   }
 
-  // 3. Auth Redirect Logic for Login/Signup
+  // 4. Auth Redirects for Login/Signup
   if (user && (path === '/login' || path === '/signup')) {
-    // If they have a subdomain in URL, just go to dashboard
     if (subdomain) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     
-    // Otherwise, find their org and send them to their subdomain
     const { data: staff } = await supabase
       .from('staff_profiles')
       .select('organizations(subdomain)')
-      .eq('user_id', user.id) // Using user_id, not id
+      .eq('user_id', user.id)
       .maybeSingle();
 
     const orgSubdomain = (staff?.organizations as any)?.subdomain;
     if (orgSubdomain) {
       const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-      const rootDomain = process.env.NODE_ENV === 'production' ? 'mthorg.com' : 'localhost:3000';
+      const rootDomain = isMainDomain ? hostname : 'mthorg.com';
       return NextResponse.redirect(new URL(`${protocol}://${orgSubdomain}.${rootDomain}/dashboard`));
     }
   }
 
-  // 4. Auth Guard: Protected routes need a user
+  // 5. Protected Routes Guard
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/settings'))) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // 5. Rewrite Logic - The key to making subdomains work
+  // 6. REWRITE LOGIC - The magic that makes subdomains work
   if (subdomain) {
-    // This rewrites tidy.mthorg.com/dashboard to /app/[subdomain]/dashboard/page.tsx
+    // This transforms tidy.mthorg.com/dashboard -> /app/[subdomain]/dashboard
     url.pathname = `/[subdomain]${path}`;
-    return NextResponse.rewrite(url);
+    
+    const rewriteResponse = NextResponse.rewrite(url);
+    
+    // Copy cookies to keep user logged in
+    response.cookies.getAll().forEach((cookie) => {
+      rewriteResponse.cookies.set(cookie.name, cookie.value);
+    });
+    
+    return rewriteResponse;
   }
 
   return response;
