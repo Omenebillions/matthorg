@@ -63,7 +63,7 @@ export default function SignupPage() {
             organization_slug: slug,
           },
           emailRedirectTo: process.env.NODE_ENV === 'production'
-            ? 'https://matthorg.vercel.app/auth/callback'
+            ? 'https://mthorg.com/auth/callback'
             : 'http://localhost:3000/auth/callback'
         }
       });
