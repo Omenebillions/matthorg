@@ -2,6 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // 1. 🛡️ FIX CORS: Handle pre-flight OPTIONS requests
+  // This prevents the browser from blocking requests between subdomains
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, { status: 204 });
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
@@ -26,15 +32,16 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 1. Refresh session
+  // 2. 🔄 Refresh session
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
-  // 2. Identify Domain
+  // 3. 🌐 Identify Domain
   const hostname = request.headers.get('host') || ''
   const url = request.nextUrl.clone()
   const path = url.pathname
 
+  // Standardize on mthorg.com (single 't')
   const isMainDomain = hostname === "mthorg.com" || hostname === "www.mthorg.com" || hostname === "localhost:3000";
   
   let subdomain = null;
@@ -42,17 +49,19 @@ export async function middleware(request: NextRequest) {
     subdomain = hostname.split('.')[0];
   }
 
-  // 3. Handle Static/API routes
+  // 4. ⚙️ Handle Static/API routes early
   if (path.startsWith('/_next') || path.includes('.') || path.startsWith('/api')) {
     return response;
   }
 
-  // 4. Auth Redirects for Login/Signup
+  // 5. 🚪 Auth Redirects for Login/Signup
   if (user && (path === '/login' || path === '/signup')) {
+    // If logged in on a subdomain, go to dashboard
     if (subdomain) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     
+    // If on main domain, find where they belong
     const { data: staff } = await supabase
       .from('staff_profiles')
       .select('organizations(subdomain)')
@@ -66,20 +75,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 5. Protected Routes Guard
+  // 6. 🔒 Protected Routes Guard
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/settings'))) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 6. REWRITE LOGIC
+  // 7. 🏗️ REWRITE LOGIC
   if (subdomain) {
-    const rewritePath = `/[subdomain]${path}`;
-    url.pathname = rewritePath;
+    // Rewrite to /[subdomain] folder
+    url.pathname = `/[subdomain]${path}`;
     
     const rewriteResponse = NextResponse.rewrite(url);
     
-    // Copy cookies to the rewrite response
+    // Sync cookies to the rewrite response so the user stays logged in
     response.cookies.getAll().forEach((cookie) => {
       rewriteResponse.cookies.set(cookie.name, cookie.value);
     });
@@ -90,7 +99,6 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// ⚡️ Config must be OUTSIDE the middleware function
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
