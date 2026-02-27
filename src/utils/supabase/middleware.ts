@@ -1,49 +1,70 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  // 1. Create a basic response
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
-  });
+  })
 
-  // 2. Setup Supabase
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value;
+          return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // This ensures the session is refreshed in the browser
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({ request });
-          response.cookies.set({ name, value, ...options });
+          // If the cookie is set, update the request cookies and response cookies
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({ request });
-          response.cookies.set({ name, value: '', ...options });
+          // If the cookie is removed, update the request cookies and response cookies
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
-  );
+  )
 
-  // 3. Get User
-  const { data: { user } } = await supabase.auth.getUser();
+  // Refreshing the session will update the cookie, so it's important
+  // to get the user AFTER the session is refreshed
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // 4. Auth Guard
-  // Since we are using /tidy/dashboard, we check the pathname
-  const path = request.nextUrl.pathname;
-  
-  if (!user && path.includes('/dashboard')) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  return response;
+  return response
 }
