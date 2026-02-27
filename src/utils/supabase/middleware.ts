@@ -2,7 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  // Initialize the response object
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -31,9 +30,7 @@ export async function updateSession(request: NextRequest) {
           }
           request.cookies.set({ name, value, ...sharedOptions })
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           })
           response.cookies.set({ name, value, ...sharedOptions })
         },
@@ -45,9 +42,7 @@ export async function updateSession(request: NextRequest) {
           }
           request.cookies.set({ name, value: '', ...sharedOptions })
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           })
           response.cookies.set({ name, value: '', ...sharedOptions })
         },
@@ -55,10 +50,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // 1. Refresh session / get current user
   const { data: { user } } = await supabase.auth.getUser()
-
-  // 2. Domain & Subdomain detection
   const url = request.nextUrl.clone()
   const path = url.pathname
 
@@ -67,9 +59,8 @@ export async function updateSession(request: NextRequest) {
     hostname === 'www.mthorg.com' || 
     hostname === 'localhost:3000'
 
-    const subdomain = isBaseDomain ? null : hostname.split('.')[0].toLowerCase()
+  const subdomain = isBaseDomain ? null : hostname.split('.')[0].toLowerCase()
 
-  // Early return for assets/api/auth
   if (
     path.startsWith('/_next') ||
     path.startsWith('/api') ||
@@ -79,24 +70,37 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
-  // 3. Auth Protection
-  // If not logged in and trying to access dashboard/settings, redirect to login
+  // 3. Auth Protection & Main Domain Redirect
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/settings'))) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(loginUrl)
   }
 
-  // If logged in and trying to access login/signup, redirect to dashboard
+  // ✨ NEW LOGIC: If logged in on WWW, redirect to their tenant subdomain
+  if (user && path.startsWith('/dashboard') && isBaseDomain) {
+    const { data: staff } = await supabase
+      .from('staff_profiles')
+      .select('organizations!organization_id(subdomain)')
+      .eq('id', user.id)
+      .maybeSingle() as any;
+
+    const targetSub = staff?.organizations?.subdomain?.toLowerCase();
+
+    if (targetSub && targetSub !== 'www') {
+      const tenantUrl = new URL(path, request.url);
+      tenantUrl.hostname = `${targetSub}.mthorg.com`;
+      return NextResponse.redirect(tenantUrl);
+    }
+  }
+
   if (user && (path === '/login' || path === '/signup')) {
     const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard'
     return NextResponse.redirect(new URL(redirectTo, request.url))
   }
 
-  // 4. Subdomain Rewrite (The 404 Fix)
+  // 4. Subdomain Rewrite
   if (subdomain && subdomain !== 'www') {
-    // 🛑 CRITICAL: Do NOT rewrite for login, signup, or if already prefixed
-    // This allows tidy.mthorg.com/login to resolve to src/app/login/page.tsx
     if (
       path.startsWith('/login') || 
       path.startsWith('/signup') || 
@@ -105,12 +109,9 @@ export async function updateSession(request: NextRequest) {
       return response
     }
 
-    // Internally route to the [subdomain] folder
-    // e.g., tidy.mthorg.com/dashboard -> src/app/[subdomain]/dashboard/page.tsx
     url.pathname = `/${subdomain}${path}`
     const rewriteResponse = NextResponse.rewrite(url)
 
-    // Copy cookies to the rewrite response so user stays logged in
     response.cookies.getAll().forEach((cookie) => {
       rewriteResponse.cookies.set(cookie.name, cookie.value)
     })
