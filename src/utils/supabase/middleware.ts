@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
 
   const subdomain = isBaseDomain ? null : hostname.split('.')[0]
 
-  // Early return for assets/api
+  // Early return for assets/api/auth
   if (
     path.startsWith('/_next') ||
     path.startsWith('/api') ||
@@ -80,12 +80,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 3. Auth Protection
+  // If not logged in and trying to access dashboard/settings, redirect to login
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/settings'))) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(loginUrl)
   }
 
+  // If logged in and trying to access login/signup, redirect to dashboard
   if (user && (path === '/login' || path === '/signup')) {
     const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard'
     return NextResponse.redirect(new URL(redirectTo, request.url))
@@ -93,10 +95,18 @@ export async function updateSession(request: NextRequest) {
 
   // 4. Subdomain Rewrite (The 404 Fix)
   if (subdomain && subdomain !== 'www') {
-    if (path.startsWith(`/${subdomain}`)) {
+    // 🛑 CRITICAL: Do NOT rewrite for login, signup, or if already prefixed
+    // This allows tidy.mthorg.com/login to resolve to src/app/login/page.tsx
+    if (
+      path.startsWith('/login') || 
+      path.startsWith('/signup') || 
+      path.startsWith(`/${subdomain}`)
+    ) {
       return response
     }
 
+    // Internally route to the [subdomain] folder
+    // e.g., tidy.mthorg.com/dashboard -> src/app/[subdomain]/dashboard/page.tsx
     url.pathname = `/${subdomain}${path}`
     const rewriteResponse = NextResponse.rewrite(url)
 
