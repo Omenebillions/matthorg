@@ -67,7 +67,7 @@ export async function updateSession(request: NextRequest) {
     hostname === 'www.mthorg.com' || 
     hostname === 'localhost:3000'
 
-  const subdomain = isBaseDomain ? null : hostname.split('.')[0]
+    const subdomain = isBaseDomain ? null : hostname.split('.')[0].toLowerCase()
 
   // Early return for assets/api/auth
   if (

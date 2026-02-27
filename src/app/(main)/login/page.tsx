@@ -53,8 +53,8 @@ export default function LoginPage() {
       const { data, error } = await supabase
         .from("organizations")
         .select("name, logo_url")
-        .eq("subdomain", sub)
-        .single();
+        .ilike("subdomain", sub)
+        .maybeSingle();
 
       if (error) throw error;
       if (data) {
