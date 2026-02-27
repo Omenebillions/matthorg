@@ -2,12 +2,15 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // Initialize the response object
   let response = NextResponse.next({
-    request: { headers: request.headers },
+    request: {
+      headers: request.headers,
+    },
   })
 
-  // Determine domain for cookies (shared wildcard in prod, none in local)
-  const isLocal = request.headers.get('host')?.includes('localhost')
+  const hostname = request.headers.get('host') || ''
+  const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1')
   const cookieDomain = isLocal ? undefined : '.mthorg.com'
 
   const supabase = createServerClient(
@@ -27,7 +30,11 @@ export async function updateSession(request: NextRequest) {
             sameSite: 'lax' as const,
           }
           request.cookies.set({ name, value, ...sharedOptions })
-          response = NextResponse.next({ request: { headers: request.headers } })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({ name, value, ...sharedOptions })
         },
         remove(name: string, options: CookieOptions) {
@@ -37,29 +44,32 @@ export async function updateSession(request: NextRequest) {
             path: '/',
           }
           request.cookies.set({ name, value: '', ...sharedOptions })
-          response = NextResponse.next({ request: { headers: request.headers } })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({ name, value: '', ...sharedOptions })
         },
       },
     }
   )
 
-  // Refresh session / get current user
+  // 1. Refresh session / get current user
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Domain & subdomain detection
-  const hostname = request.headers.get('host') || ''
+  // 2. Domain & Subdomain detection
   const url = request.nextUrl.clone()
   const path = url.pathname
 
-  const isMainDomain =
-    hostname === 'mthorg.com' ||
-    hostname === 'www.mthorg.com' ||
-    isLocal
+  const isBaseDomain = 
+    hostname === 'mthorg.com' || 
+    hostname === 'www.mthorg.com' || 
+    hostname === 'localhost:3000'
 
-  const subdomain = isMainDomain ? null : hostname.split('.')[0]
+  const subdomain = isBaseDomain ? null : hostname.split('.')[0]
 
-  // Early return for static / API / auth routes
+  // Early return for assets/api
   if (
     path.startsWith('/_next') ||
     path.startsWith('/api') ||
@@ -69,33 +79,30 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
-  // 1. Protect dashboard/settings routes
+  // 3. Auth Protection
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/settings'))) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(loginUrl)
   }
 
-  // 2. Redirect logged-in users away from login/signup
   if (user && (path === '/login' || path === '/signup')) {
     const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard'
     return NextResponse.redirect(new URL(redirectTo, request.url))
   }
 
-  // 3. Subdomain rewrite (only if on a tenant subdomain)
-  if (subdomain) {
-    // Prevent rewrite loops
+  // 4. Subdomain Rewrite (The 404 Fix)
+  if (subdomain && subdomain !== 'www') {
     if (path.startsWith(`/${subdomain}`)) {
       return response
     }
 
-    // Rewrite to internal dynamic route: tidy.mthorg.com/dashboard → /tidy/dashboard
     url.pathname = `/${subdomain}${path}`
     const rewriteResponse = NextResponse.rewrite(url)
 
-    // Sync all cookies to the rewritten response
+    // Copy cookies to the rewrite response so user stays logged in
     response.cookies.getAll().forEach((cookie) => {
-      rewriteResponse.cookies.set(cookie.name, cookie.value, cookie)
+      rewriteResponse.cookies.set(cookie.name, cookie.value)
     })
 
     return rewriteResponse
