@@ -25,6 +25,7 @@ export default function LoginPage() {
     password: "",
   });
 
+  // Extract subdomain from hostname
   useEffect(() => {
     const extractSubdomain = () => {
       const host = window.location.hostname;
@@ -41,22 +42,22 @@ export default function LoginPage() {
 
     const sub = extractSubdomain();
     setSubdomain(sub);
-    if (sub) {
-      fetchOrganizationBranding(sub);
-    } else {
-      setLoading(false);
-    }
+
+    if (sub) fetchOrganizationBranding(sub);
+    else setLoading(false);
   }, []);
 
+  // Fetch branding info for subdomain
   const fetchOrganizationBranding = async (sub: string) => {
     try {
       const { data, error } = await supabase
         .from("organizations")
         .select("name, logo_url")
-        .ilike("subdomain", sub)
+        .eq("subdomain", sub)
         .maybeSingle();
 
       if (error) throw error;
+
       if (data) {
         setBranding({
           logo: data.logo_url || "/logo.png",
@@ -70,6 +71,7 @@ export default function LoginPage() {
     }
   };
 
+  // Handle login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthenticating(true);
@@ -91,13 +93,10 @@ export default function LoginPage() {
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || "Login failed");
-      }
+      if (!response.ok) throw new Error(result.error || "Login failed");
 
       // 2. Set Supabase session
       const sessionData = result.session || result;
-
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: sessionData.access_token,
         refresh_token: sessionData.refresh_token,
@@ -106,41 +105,26 @@ export default function LoginPage() {
       if (sessionError) throw sessionError;
 
       // 3. Redirect logic
-      if (subdomain && subdomain !== "www") {
-        // Load the dashboard for this subdomain
+      if (subdomain) {
+        // Go to the dynamic subdomain dashboard page
         router.push(`/${subdomain}/dashboard`);
       } else {
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No authenticated user after login");
 
-        if (user) {
-          // 🔑 Use 'id' instead of 'user_id' in eq
-          const { data: staff, error: staffError } = await supabase
-            .from("staff_profiles")
-            .select(`
-              id,
-              organizations!organization_id (
-                subdomain
-              )
-            `)
-            .eq("id", user.id)
-            .maybeSingle() as any;
+        // Fetch staff profile to get their subdomain
+        const { data: staff, error: staffError } = await supabase
+          .from("staff_profiles")
+          .select(`id, organizations!organization_id(subdomain)`)
+          .eq("id", user.id)
+          .maybeSingle() as any;
 
-          if (staffError) throw staffError;
+        if (staffError) throw staffError;
+        if (!staff) throw new Error("Staff profile not found. Please contact support.");
 
-          if (!staff) {
-            throw new Error("Staff profile not found. Please contact support.");
-          }
-
-          const targetSub = staff?.organizations?.subdomain;
-
-          if (targetSub) {
-            window.location.href = `https://${targetSub}.mthorg.com/dashboard`;
-          } else {
-            router.push("/dashboard");
-          }
-        } else {
-          throw new Error("No authenticated user after login");
-        }
+        const targetSub = staff.organizations?.subdomain;
+        if (!targetSub) router.push("/dashboard");
+        else router.push(`/${targetSub}/dashboard`);
       }
     } catch (err: any) {
       console.error("Login error:", err);
@@ -174,9 +158,7 @@ export default function LoginPage() {
             className="mx-auto rounded-xl shadow-sm object-contain"
           />
           <h1 className="text-2xl font-bold mt-4">
-            {subdomain !== null
-              ? `Sign in to ${branding.name}`
-              : "Sign in to MatthOrg"}
+            {subdomain ? `Sign in to ${branding.name}` : "Sign in to MatthOrg"}
           </h1>
         </div>
 
@@ -193,12 +175,10 @@ export default function LoginPage() {
             </label>
             <input
               type="email"
-              placeholder="enter your email address"
+              placeholder="Enter Your Email"
               required
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             />
           </div>
@@ -212,9 +192,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             />
           </div>
