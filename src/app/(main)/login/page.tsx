@@ -112,18 +112,26 @@ export default function LoginPage() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
+          // Explicitly join using !organization_id to resolve PGRST201 error
+          // Cast to 'any' to handle the dynamic join property in TypeScript
           const { data: staff, error: staffError } = await supabase
             .from("staff_profiles")
-            .select("organizations(subdomain)")
+            .select(`
+              user_id,
+              organizations!organization_id (
+                subdomain
+              )
+            `)
             .eq("user_id", user.id)
-            .single();
+            .single() as any;
 
           if (staffError) throw staffError;
 
-          // organizations comes back as array → take first item
-          const targetSub = staff?.organizations?.[0]?.subdomain;
+          // Extract subdomain from the single joined object
+          const targetSub = staff?.organizations?.subdomain;
 
           if (targetSub) {
+            // Use window.location for cross-domain redirect
             window.location.href = `https://${targetSub}.mthorg.com/dashboard`;
           } else {
             router.push("/dashboard");
