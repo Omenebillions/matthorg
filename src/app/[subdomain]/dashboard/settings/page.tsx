@@ -1,55 +1,59 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { createClient } from "../../../../utils/supabase/client";
-import Image from "next/image";
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '../../../../utils/supabase/client';
+import Image from 'next/image';
 
 const supabase = createClient();
 
+interface Organization {
+  id: number;
+  logo_url: string | null;
+  address: string | null;
+}
+
 export default function SettingsPage() {
-  const [org, setOrg] = useState<any>(null);
+  const [org, setOrg] = useState<Organization | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState('');
   const [savingAddress, setSavingAddress] = useState(false);
 
-  useEffect(() => {
-    loadOrganization();
-  }, []);
-
-  const loadOrganization = async () => {
+  const loadOrganization = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data, error } = await supabase
-      .from("organizations")
-      .select("*")
-      .eq("user_id", user.id)
+      .from('organizations')
+      .select('*')
+      .eq('user_id', user.id)
       .single();
 
     if (!error) {
-      setOrg(data);
-      setAddress(data.address || "");
+      setOrg(data as Organization);
+      setAddress(data.address || '');
     }
-  };
+  }, []);
 
-  const uploadLogo = async (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  useEffect(() => {
+    loadOrganization();
+  }, [loadOrganization]);
 
-    // Validate size (1MB max)
+  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    if (!file || !org) return;
+
     if (file.size > 1 * 1024 * 1024) {
-      alert("Logo too large! Max size allowed is 1MB.");
+      alert('Logo too large! Max size allowed is 1MB.');
       return;
     }
 
     setLogoUploading(true);
 
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split('.').pop();
     const filePath = `org_${org.id}.${ext}`;
 
-    // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from("organization-logos")
+      .from('organization-logos')
       .upload(filePath, file, { upsert: true });
 
     if (uploadError) {
@@ -58,22 +62,19 @@ export default function SettingsPage() {
       return;
     }
 
-    // Get public URL
-    const { data: url } = supabase.storage
-      .from("organization-logos")
+    const { data: urlData } = supabase.storage
+      .from('organization-logos')
       .getPublicUrl(filePath);
 
-    // Save URL to database
     await supabase
-      .from("organizations")
-      .update({ logo_url: url.publicUrl })
-      .eq("id", org.id);
+      .from('organizations')
+      .update({ logo_url: urlData.publicUrl })
+      .eq('id', org.id);
 
-    // Refresh UI
     loadOrganization();
     setLogoUploading(false);
 
-    alert("Logo updated successfully!");
+    alert('Logo updated successfully!');
   };
 
   const saveAddress = async () => {
@@ -82,22 +83,21 @@ export default function SettingsPage() {
     setSavingAddress(true);
 
     const { error } = await supabase
-      .from("organizations")
+      .from('organizations')
       .update({ address })
-      .eq("id", org.id);
+      .eq('id', org.id);
 
     setSavingAddress(false);
 
     if (error) return alert(error.message);
 
-    alert("Address updated!");
+    alert('Address updated!');
   };
 
   return (
     <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      {/* LOGO SECTION */}
       <div className="bg-white rounded-xl p-5 shadow">
         <h2 className="font-semibold text-lg mb-3">Organization Logo</h2>
 
@@ -124,7 +124,6 @@ export default function SettingsPage() {
         {logoUploading && <p className="text-blue-500 mt-2">Uploading...</p>}
       </div>
 
-      {/* ADDRESS SECTION */}
       <div className="bg-white rounded-xl p-5 shadow">
         <h2 className="font-semibold text-lg mb-3">Receipt Address</h2>
 
@@ -140,7 +139,7 @@ export default function SettingsPage() {
           disabled={savingAddress}
           className="mt-3 bg-blue-600 text-white rounded-lg px-6 py-2"
         >
-          {savingAddress ? "Saving..." : "Save Address"}
+          {savingAddress ? 'Saving...' : 'Save Address'}
         </button>
       </div>
     </div>
