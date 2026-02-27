@@ -107,13 +107,13 @@ export default function LoginPage() {
 
       // 3. Redirect logic
       if (subdomain && subdomain !== "www") {
-        router.push("/dashboard");
+        // Load the dashboard for this subdomain
+        router.push(`/${subdomain}/dashboard`);
       } else {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          // 🔑 FIX: Changed .eq("user_id", user.id) to .eq("id", user.id)
-          // Also used maybeSingle() to handle missing profiles gracefully
+          // 🔑 Use 'id' instead of 'user_id' in eq
           const { data: staff, error: staffError } = await supabase
             .from("staff_profiles")
             .select(`
@@ -193,7 +193,7 @@ export default function LoginPage() {
             </label>
             <input
               type="email"
-              placeholder="name@company.com"
+              placeholder="enter your email address"
               required
               value={formData.email}
               onChange={(e) =>
