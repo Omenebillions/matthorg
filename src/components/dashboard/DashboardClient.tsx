@@ -1,347 +1,292 @@
 // /home/user/matthorg/src/components/dashboard/DashboardClient.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
-import StatsCards from "./StatsCards";
-import SalesChart from "./SalesChart";
-import ExpenseChart from "./ExpenseChart";
-import RecentActivity from "./RecentActivity";
-import QuickActions from "./QuickActions";
-import InventoryAlerts from "./InventoryAlerts";
-import StaffTable from "./StaffTable";
-import PermissionsModal from "./PermissionsModal";
-import TaskList from "./TaskList";
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { motion } from 'framer-motion';
+import {
+  BellIcon,
+  UserGroupIcon,
+  ArchiveBoxIcon,
+  ClockIcon,
+  BeakerIcon, // ← Added missing import!
+} from '@heroicons/react/24/outline';
+
+// DEFAULT exports (no curly braces)
+import WelcomeHeader from './WelcomeHeader';
+import SalesChart from './SalesChart';
+import ExpenseChart from './ExpenseChart';
+import RecentActivity from './RecentActivity';
+import InventoryAlerts from './InventoryAlerts';
+import TaskList from './TaskList';
+import StaffOnline from './StaffOnline';
+import QuickActions from './QuickActions';
+
+// NAMED exports (with curly braces)
+import { StatsCards } from './StatsCards';
+import { PerformanceMetrics } from './PerformanceMetrics';
+
+// Industry components
+import BreederDashboard from './industries/BreederDashboard';
 
 interface DashboardClientProps {
+  user: any;
   org: any;
   totalSales: number;
   totalExpenses: number;
+  netProfit: number;
+  salesTrend: { percentage: string; direction: string };
+  expenseTrend: { percentage: string; direction: string };
   inventoryCount: number;
+  staffCount: number;
+  activeStaff: number;
+  pendingTasks: number;
+  taskCount: number;
+  milestoneCount: number;
+  jobCount: number;
   recentSales: any[];
   recentExpenses: any[];
   lowStock: any[];
-  recentStaff?: any[];
-  recentTasks?: any[];
-  pendingTasks?: number;
-  activeStaff?: number;
+  recentStaff: any[];
+  recentTasks: any[];
+  recentMilestones: any[];
+  recentJobs: any[];
+  attendanceToday: any[];
+  recentActivity: any[];
+  chartData: any[];
 }
 
 export default function DashboardClient({
+  user,
   org,
   totalSales,
   totalExpenses,
+  netProfit,
+  salesTrend,
+  expenseTrend,
   inventoryCount,
+  staffCount,
+  activeStaff,
+  pendingTasks,
+  taskCount,
+  milestoneCount,
+  jobCount,
   recentSales,
   recentExpenses,
   lowStock,
-  recentStaff = [],
-  recentTasks = [],
-  pendingTasks = 0,
-  activeStaff = 0,
+  recentStaff,
+  recentTasks,
+  recentMilestones,
+  recentJobs,
+  attendanceToday,
+  recentActivity,
+  chartData,
 }: DashboardClientProps) {
   const supabase = createClient();
-  const profit = totalSales - totalExpenses;
-  const [activeTab, setActiveTab] = useState<"overview" | "staff" | "tasks">("overview");
-  
-  // Staff & Permissions State
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
-  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
-  const [staffList, setStaffList] = useState(recentStaff);
-  const [taskList, setTaskList] = useState(recentTasks);
+  const [isLive, setIsLive] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showBreeder, setShowBreeder] = useState(false);
 
-  // Handlers
-  const handleRoleChange = async (staffId: string, newRole: string) => {
-    const { error } = await supabase
-      .from('staff_profiles')
-      .update({ role: newRole })
-      .eq('id', staffId);
+  // Update clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-    if (!error) {
-      // Update local state
-      setStaffList(staffList.map(s => 
-        s.id === staffId ? { ...s, role: newRole } : s
-      ));
-    }
-  };
+  // Setup real-time subscriptions
+  useEffect(() => {
+    if (!org?.id) return;
 
-  const handlePermissionsSave = async (permissions: string[]) => {
-    if (!selectedStaff) return;
-    
-    const { error } = await supabase
-      .from('staff_profiles')
-      .update({ permissions })
-      .eq('id', selectedStaff.id);
+    const channel = supabase
+      .channel('dashboard-all')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'sales', filter: `organization_id=eq.${org.id}` },
+        () => showNotification('Sales Updated', 'New sale recorded')
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory', filter: `organization_id=eq.${org.id}` },
+        (payload) => {
+          // Safe access with type checking
+          const newData = payload.new as any;
+          if (newData?.quantity < 10) {
+            showNotification('Low Stock Alert', `${newData?.item_name || 'Item'} is running low`, 'warning');
+          }
+        }
+      )
+      .subscribe((status) => setIsLive(status === 'SUBSCRIBED'));
 
-    if (!error) {
-      // Update local state
-      setStaffList(staffList.map(s => 
-        s.id === selectedStaff.id ? { ...s, permissions } : s
-      ));
-      setShowPermissionsModal(false);
-      setSelectedStaff(null);
-    }
-  };
+    return () => { supabase.removeChannel(channel); };
+  }, [org?.id]);
 
-  const handlePermissionsClick = (staff: any) => {
-    setSelectedStaff(staff);
-    setShowPermissionsModal(true);
-  };
-
-  const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus })
-      .eq('id', taskId);
-
-    if (!error) {
-      setTaskList(taskList.map(t => 
-        t.id === taskId ? { ...t, status: newStatus } : t
-      ));
-    }
+  const showNotification = (title: string, message: string, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, title, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {org.name}
-              </h1>
-              <p className="text-sm text-gray-500">
-                {org.subdomain}.mthorg.com
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Live Status Bar */}
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-sm text-gray-600">
+                  {isLive ? 'Live' : 'Reconnecting...'}
+                </span>
+              </div>
+              <span className="text-gray-300">|</span>
+              <span className="text-sm text-gray-600 flex items-center">
+                <ClockIcon className="w-4 h-4 mr-1" />
+                {currentTime.toLocaleTimeString()}
+              </span>
             </div>
-            <QuickActions orgId={org.id} />
-          </div>
+            <div className="flex items-center gap-4">
+              {/* SIMPLE BUTTON TO TOGGLE BREEDER VIEW */}
+              <button
+                onClick={() => setShowBreeder(!showBreeder)}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition ${
+                  showBreeder 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <BeakerIcon className="w-4 h-4" />
+                {showBreeder ? 'Hide Breeder' : 'Show Breeder'}
+              </button>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-4 mt-4 border-b">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "overview"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("staff")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "staff"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Staff ({activeStaff})
-            </button>
-            <button
-              onClick={() => setActiveTab("tasks")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "tasks"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Tasks ({pendingTasks} pending)
-            </button>
+              <span className="text-sm text-gray-600">
+                <UserGroupIcon className="w-4 h-4 inline mr-1" />
+                {activeStaff} online
+              </span>
+              <button className="relative">
+                <BellIcon className="w-5 h-5 text-gray-600 hover:text-blue-600" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
+
+      {/* Notifications */}
+      <div className="fixed top-16 right-4 z-50 space-y-2">
+        {notifications.map(notif => (
+          <motion.div
+            key={notif.id}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className={`p-4 rounded-lg shadow-lg ${
+              notif.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-white border-l-4 border-blue-500'
+            }`}
+          >
+            <p className="font-semibold">{notif.title}</p>
+            <p className="text-sm text-gray-600">{notif.message}</p>
+          </motion.div>
+        ))}
+      </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === "overview" && (
-          <>
-            {/* Stats Cards */}
-            <StatsCards
-              totalSales={totalSales}
-              totalExpenses={totalExpenses}
-              inventoryCount={inventoryCount}
-              profit={profit}
-              activeStaff={activeStaff}
-              pendingTasks={pendingTasks}
-            />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Welcome Header */}
+        <WelcomeHeader user={user} org={org} />
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-              <SalesChart orgId={org.id} />
-              <ExpenseChart expenses={recentExpenses} />
-            </div>
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <QuickActions orgId={org?.id} />
+        </div>
 
-            {/* Staff and Tasks Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-              {/* Recent Staff Preview */}
-              <div className="bg-white rounded-xl border p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">Recent Staff</h3>
-                  <button
-                    onClick={() => setActiveTab("staff")}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    View All →
-                  </button>
-                </div>
-                {staffList.length > 0 ? (
-                  <div className="space-y-3">
-                    {staffList.slice(0, 3).map((staff) => (
-                      <div key={staff.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-bold">
-                            {staff.full_name?.charAt(0) || "?"}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{staff.full_name}</p>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 text-xs rounded-full ${
-                              staff.role === 'ceo' ? 'bg-purple-100 text-purple-700' :
-                              staff.role === 'admin' ? 'bg-red-100 text-red-700' :
-                              staff.role === 'manager' ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {staff.role}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No staff members yet</p>
-                )}
-              </div>
+        {/* Stats Cards - FIXED: StatsCards expects organizationId, not individual stats */}
+        <div className="mb-8">
+          <StatsCards organizationId={org?.id} />
+        </div>
 
-              {/* Recent Tasks Preview */}
-              <div className="bg-white rounded-xl border p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">Recent Tasks</h3>
-                  <button
-                    onClick={() => setActiveTab("tasks")}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    View All →
-                  </button>
-                </div>
-                {taskList.length > 0 ? (
-                  <div className="space-y-3">
-                    {taskList.slice(0, 3).map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium">{task.title}</p>
-                          <p className="text-xs text-gray-500">
-                            {task.status} • Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
-                          </p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          task.status === 'completed' 
-                            ? 'bg-green-100 text-green-700'
-                            : task.status === 'in_progress'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {task.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No tasks yet</p>
-                )}
-              </div>
-            </div>
-
-            {/* Alerts and Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-              <div className="lg:col-span-2">
-                <RecentActivity 
-                  sales={recentSales} 
-                  expenses={recentExpenses} 
-                />
-              </div>
-              <div>
-                <InventoryAlerts lowStock={lowStock} />
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === "staff" && (
-          <div className="bg-white rounded-xl border p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Staff Management</h2>
-              <button
-                onClick={() => {/* Open add staff modal */}}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                + Add Staff
-              </button>
-            </div>
-            <StaffTable 
-              staff={staffList} 
-              orgId={org.id}
-              onRoleChange={handleRoleChange}
-              onPermissionsClick={handlePermissionsClick}
-            />
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <SalesChart orgId={org?.id} />
           </div>
-        )}
-
-        {activeTab === "tasks" && (
-          <div className="bg-white rounded-xl border p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Tasks & Milestones</h2>
-              <button
-                onClick={() => {/* Open add task modal */}}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                + New Task
-              </button>
-            </div>
-            <TaskList 
-              tasks={taskList} 
-              orgId={org.id}
-              onStatusChange={handleTaskStatusChange}
-            />
-          </div>
-        )}
-
-        {/* Quick Stats Row (visible in all tabs) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-          <div className="bg-white p-4 rounded-lg border text-center">
-            <p className="text-2xl font-bold text-blue-600">{recentSales.length}</p>
-            <p className="text-xs text-gray-600">Today's Sales</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg border text-center">
-            <p className="text-2xl font-bold text-orange-600">{recentExpenses.length}</p>
-            <p className="text-xs text-gray-600">Today's Expenses</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg border text-center">
-            <p className="text-2xl font-bold text-green-600">{inventoryCount}</p>
-            <p className="text-xs text-gray-600">Total Products</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg border text-center">
-            <p className="text-2xl font-bold text-purple-600">{lowStock.length}</p>
-            <p className="text-xs text-gray-600">Low Stock Items</p>
+          <div>
+            <ExpenseChart organizationId={org?.id} timeRange="week" />
           </div>
         </div>
-      </main>
 
-      {/* Permissions Modal */}
-      <PermissionsModal
-        isOpen={showPermissionsModal}
-        onClose={() => {
-          setShowPermissionsModal(false);
-          setSelectedStaff(null);
-        }}
-        staffName={selectedStaff?.full_name || ""}
-        currentPermissions={selectedStaff?.permissions || []}
-        onSave={handlePermissionsSave}
-      />
+        {/* CONDITIONAL CONTENT - Show either regular dashboard OR breeder dashboard */}
+        {showBreeder ? (
+          // BREEDER VIEW - Full screen breeder component
+          <div className="mt-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BeakerIcon className="w-5 h-5 text-purple-600" />
+                <span className="font-medium text-purple-700">Breeder Module Active</span>
+              </div>
+              <button
+                onClick={() => setShowBreeder(false)}
+                className="text-sm text-purple-600 hover:text-purple-800"
+              >
+                Close
+              </button>
+            </div>
+            <BreederDashboard data={{
+              dogCount: 24,
+              femalesInHeat: 3,
+              upcomingLitters: 2,
+              healthDue: 5,
+              dogList: [],
+              litterList: [],
+              healthList: []
+            }} />
+          </div>
+        ) : (
+          // REGULAR DASHBOARD VIEW
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - 2/3 width */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Inventory Alerts */}
+              {lowStock.length > 0 && (
+                <InventoryAlerts organizationId={org?.id} lowStockThreshold={5} />
+              )}
+
+              {/* Recent Activity */}
+              <RecentActivity organizationId={org?.id} limit={10} />
+
+              {/* Task List */}
+              <TaskList 
+                tasks={recentTasks}
+                orgId={org?.id}
+              />
+            </div>
+
+            {/* Right Column - 1/3 width */}
+            <div className="space-y-6">
+              {/* Staff Online */}
+              <StaffOnline 
+                staff={recentStaff}
+                attendance={attendanceToday}
+                totalStaff={staffCount}
+                activeStaff={activeStaff}
+              />
+
+              {/* Performance Metrics */}
+              <PerformanceMetrics
+                taskCompletion={taskCount > 0 ? ((taskCount - pendingTasks) / taskCount * 100) : 0}
+                salesTarget={totalSales}
+                inventoryValue={inventoryCount * 1000}
+                staffProductivity={85}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
