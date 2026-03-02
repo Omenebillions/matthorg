@@ -181,7 +181,7 @@ export default function SignupPage() {
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '')
-      .substring(0, 30); // Limit length
+      .substring(0, 30);
   };
 
   // Check subdomain availability
@@ -226,7 +226,7 @@ export default function SignupPage() {
       base + 'workspace',
       base.slice(0, 15),
       base.replace(/-/g, ''),
-    ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+    ].filter((v, i, a) => a.indexOf(v) === i);
 
     setSubdomainSuggestions(suggestions);
   }, [form.company_name]);
@@ -256,7 +256,6 @@ export default function SignupPage() {
     try {
       const finalIndustry = form.industry === "Other (Please Specify)" ? form.other_industry : form.industry;
       
-      // Use custom subdomain if provided, otherwise generate from company name
       const slug = form.custom_subdomain || generateSubdomain(form.company_name);
       
       if (slug.length < 3) {
@@ -304,6 +303,27 @@ export default function SignupPage() {
       
       console.log("✅ User created:", userId);
 
+      // ✅ IMPORTANT: Set the session manually
+      if (data.session) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          // Wait a moment and try to refresh
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await supabase.auth.refreshSession();
+        } else {
+          console.log("✅ Session set successfully");
+        }
+      } else {
+        console.log("⏳ No session yet, waiting...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await supabase.auth.refreshSession();
+      }
+
       // 2️⃣ Insert Organization
       console.log("🏢 Creating organization:", {
         user_id: userId,
@@ -342,7 +362,7 @@ export default function SignupPage() {
 
       console.log("✅ Organization created:", org.id);
 
-      // 3️⃣ Insert Staff Profile (First/Last name only)
+      // 3️⃣ Insert Staff Profile
       const allPermissions = [
         "task:create", "task:assign", "task:view",
         "inventory:add", "inventory:view",
@@ -420,7 +440,6 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* First & Last Name Row */}
             <div className="grid grid-cols-2 gap-4">
               <input
                 name="first_name"
@@ -549,7 +568,6 @@ export default function SignupPage() {
                 required
               />
               
-              {/* Dropdown Results */}
               <AnimatePresence>
                 {showDropdown && (
                   <motion.div
