@@ -1,9 +1,9 @@
 // /home/user/matthorg/src/app/(main)/signup/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -17,11 +17,18 @@ export default function SignupPage() {
     email: "",
     password: "",
     company_name: "",
+    custom_subdomain: "",
     industry: "",
     other_industry: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [subdomainSuggestions, setSubdomainSuggestions] = useState<string[]>([]);
+  const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
+  const [checkingSubdomain, setCheckingSubdomain] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const industries = [
     // Professional Services
@@ -147,6 +154,83 @@ export default function SignupPage() {
     "Other (Please Specify)"
   ];
 
+  // Filter industries based on search
+  const filteredIndustries = useMemo(() => {
+    if (!searchTerm) return industries;
+    return industries.filter(ind => 
+      ind.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Generate subdomain from company name
+  const generateSubdomain = (name: string) => {
+    if (!name) return '';
+    return name.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 30); // Limit length
+  };
+
+  // Check subdomain availability
+  useEffect(() => {
+    const checkSubdomain = async () => {
+      const subdomainToCheck = form.custom_subdomain || generateSubdomain(form.company_name);
+      
+      if (!subdomainToCheck || subdomainToCheck.length < 3) {
+        setSubdomainAvailable(null);
+        return;
+      }
+
+      setCheckingSubdomain(true);
+      const { data } = await supabase
+        .from('organizations')
+        .select('subdomain')
+        .eq('subdomain', subdomainToCheck)
+        .maybeSingle();
+
+      setSubdomainAvailable(!data);
+      setCheckingSubdomain(false);
+    };
+
+    const timeout = setTimeout(checkSubdomain, 500);
+    return () => clearTimeout(timeout);
+  }, [form.company_name, form.custom_subdomain]);
+
+  // Generate suggestions when company name changes
+  useEffect(() => {
+    if (!form.company_name) {
+      setSubdomainSuggestions([]);
+      return;
+    }
+
+    const base = generateSubdomain(form.company_name);
+    if (!base) return;
+
+    const suggestions = [
+      base,
+      base + 'app',
+      base + 'hub',
+      base + 'workspace',
+      base.slice(0, 15),
+      base.replace(/-/g, ''),
+    ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+
+    setSubdomainSuggestions(suggestions);
+  }, [form.company_name]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -154,12 +238,15 @@ export default function SignupPage() {
     setError("");
   };
 
-  const generateSubdomain = (name: string) =>
-    name.toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
+  const selectIndustry = (industry: string) => {
+    setForm({ ...form, industry });
+    setSearchTerm(industry);
+    setShowDropdown(false);
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setForm({ ...form, custom_subdomain: suggestion });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,11 +255,23 @@ export default function SignupPage() {
 
     try {
       const finalIndustry = form.industry === "Other (Please Specify)" ? form.other_industry : form.industry;
-      const slug = generateSubdomain(form.company_name);
-      const fullName = `${form.first_name} ${form.last_name}`.trim();
+      
+      // Use custom subdomain if provided, otherwise generate from company name
+      const slug = form.custom_subdomain || generateSubdomain(form.company_name);
       
       if (slug.length < 3) {
-        throw new Error("Company name is too short to create a valid web address.");
+        throw new Error("Subdomain must be at least 3 characters.");
+      }
+
+      // Final availability check
+      const { data: existing } = await supabase
+        .from('organizations')
+        .select('subdomain')
+        .eq('subdomain', slug)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error(`The subdomain "${slug}.mthorg.com" is already taken. Please choose another.`);
       }
 
       console.log("📝 Signup attempt with:", {
@@ -187,7 +286,6 @@ export default function SignupPage() {
         password: form.password,
         options: {
           data: {
-            full_name: fullName,
             first_name: form.first_name,
             last_name: form.last_name,
             company_name: form.company_name,
@@ -234,7 +332,7 @@ export default function SignupPage() {
         });
         
         if (orgError.code === '23505') {
-          throw new Error(`Company name "${form.company_name}" is already taken. Please choose another.`);
+          throw new Error(`The subdomain "${slug}.mthorg.com" is already taken. Please choose another.`);
         } else if (orgError.code === '42501') {
           throw new Error("Permission denied. Please check database permissions.");
         } else {
@@ -244,7 +342,7 @@ export default function SignupPage() {
 
       console.log("✅ Organization created:", org.id);
 
-      // 3️⃣ Insert Staff Profile with First/Last Name only
+      // 3️⃣ Insert Staff Profile (First/Last name only)
       const allPermissions = [
         "task:create", "task:assign", "task:view",
         "inventory:add", "inventory:view",
@@ -273,7 +371,7 @@ export default function SignupPage() {
 
       // 4️⃣ Success!
       setError("");
-      alert(`Account created! Welcome, ${form.first_name}! Please check your email to verify your account.`);
+      alert(`Account created! Welcome, ${form.first_name}! Your workspace is ready at https://${slug}.mthorg.com`);
       router.push("/login?message=Please verify your email");
       
     } catch (err: any) {
@@ -283,6 +381,8 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  const generatedSubdomain = form.custom_subdomain || generateSubdomain(form.company_name);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
@@ -369,21 +469,121 @@ export default function SignupPage() {
               required
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
             />
+
+            {/* Subdomain Field */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Your Workspace URL
+              </label>
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  name="custom_subdomain"
+                  value={form.custom_subdomain}
+                  onChange={handleChange}
+                  placeholder={generatedSubdomain || "your-company"}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-l-xl focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+                <span className="px-4 py-3 bg-gray-50 border border-l-0 border-gray-200 rounded-r-xl text-gray-600">
+                  .mthorg.com
+                </span>
+              </div>
+
+              {/* Subdomain Suggestions */}
+              {subdomainSuggestions.length > 0 && !form.custom_subdomain && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {subdomainSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => applySuggestion(suggestion)}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Availability Indicator */}
+              {generatedSubdomain && generatedSubdomain.length >= 3 && (
+                <div className="flex items-center gap-2 text-sm mt-1">
+                  {checkingSubdomain ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+                      <span className="text-gray-500">Checking availability...</span>
+                    </>
+                  ) : subdomainAvailable === true ? (
+                    <>
+                      <span className="text-green-500">✓</span>
+                      <span className="text-green-600">Available!</span>
+                    </>
+                  ) : subdomainAvailable === false ? (
+                    <>
+                      <span className="text-red-500">✗</span>
+                      <span className="text-red-600">Already taken</span>
+                    </>
+                  ) : null}
+                </div>
+              )}
+            </div>
             
-            <select
-              name="industry"
-              value={form.industry}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
-            >
-              <option value="">Select Industry</option>
-              {industries.map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
+            {/* Industry Search Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Industry <span className="text-gray-400">(search or select)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Type to search industries..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowDropdown(true);
+                  if (!e.target.value) {
+                    setForm({ ...form, industry: "" });
+                  }
+                }}
+                onFocus={() => setShowDropdown(true)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
+                required
+              />
+              
+              {/* Dropdown Results */}
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute z-20 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                  >
+                    {filteredIndustries.length > 0 ? (
+                      filteredIndustries.map((industry) => (
+                        <div
+                          key={industry}
+                          onClick={() => selectIndustry(industry)}
+                          className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                        >
+                          {industry}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-gray-500 mb-2">No industries found</p>
+                        <button
+                          type="button"
+                          onClick={() => selectIndustry("Other (Please Specify)")}
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          Select "Other" to specify
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {form.industry === "Other (Please Specify)" && (
               <input
@@ -399,9 +599,9 @@ export default function SignupPage() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled={loading}
+              disabled={loading || subdomainAvailable === false}
               className={`w-full py-3 font-semibold bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
+                loading || subdomainAvailable === false ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               {loading ? "Creating Account..." : "Sign Up"}
