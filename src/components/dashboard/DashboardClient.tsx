@@ -1,15 +1,13 @@
 // /home/user/matthorg/src/components/dashboard/DashboardClient.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BellIcon,
   UserGroupIcon,
-  ArchiveBoxIcon,
-  ClockIcon,
-  BeakerIcon, // ← Added missing import!
+  BeakerIcon,
 } from '@heroicons/react/24/outline';
 
 // DEFAULT exports (no curly braces)
@@ -28,6 +26,7 @@ import { PerformanceMetrics } from './PerformanceMetrics';
 
 // Industry components
 import BreederDashboard from './industries/BreederDashboard';
+import LiveClock from './LiveClock'; // New extracted component
 
 interface DashboardClientProps {
   user: any;
@@ -56,7 +55,7 @@ interface DashboardClientProps {
   chartData: any[];
 }
 
-export default function DashboardClient({
+function DashboardClient({
   user,
   org,
   totalSales,
@@ -84,14 +83,16 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const supabase = createClient();
   const [isLive, setIsLive] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showBreeder, setShowBreeder] = useState(false);
 
-  // Update clock
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+  // Memoize notification function to prevent recreating
+  const showNotification = useCallback((title: string, message: string, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, title, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
   }, []);
 
   // Setup real-time subscriptions
@@ -107,7 +108,6 @@ export default function DashboardClient({
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'inventory', filter: `organization_id=eq.${org.id}` },
         (payload) => {
-          // Safe access with type checking
           const newData = payload.new as any;
           if (newData?.quantity < 10) {
             showNotification('Low Stock Alert', `${newData?.item_name || 'Item'} is running low`, 'warning');
@@ -117,15 +117,7 @@ export default function DashboardClient({
       .subscribe((status) => setIsLive(status === 'SUBSCRIBED'));
 
     return () => { supabase.removeChannel(channel); };
-  }, [org?.id]);
-
-  const showNotification = (title: string, message: string, type = 'info') => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, title, message, type }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  };
+  }, [org?.id, showNotification]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -141,13 +133,11 @@ export default function DashboardClient({
                 </span>
               </div>
               <span className="text-gray-300">|</span>
-              <span className="text-sm text-gray-600 flex items-center">
-                <ClockIcon className="w-4 h-4 mr-1" />
-                {currentTime.toLocaleTimeString()}
-              </span>
+              {/* Clock now in its own component */}
+              <LiveClock />
             </div>
             <div className="flex items-center gap-4">
-              {/* SIMPLE BUTTON TO TOGGLE BREEDER VIEW */}
+              {/* Breeder toggle button */}
               <button
                 onClick={() => setShowBreeder(!showBreeder)}
                 className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition ${
@@ -166,11 +156,18 @@ export default function DashboardClient({
               </span>
               <button className="relative">
                 <BellIcon className="w-5 h-5 text-gray-600 hover:text-blue-600" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {notifications.length > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
+                    >
+                      {notifications.length}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             </div>
           </div>
@@ -179,20 +176,22 @@ export default function DashboardClient({
 
       {/* Notifications */}
       <div className="fixed top-16 right-4 z-50 space-y-2">
-        {notifications.map(notif => (
-          <motion.div
-            key={notif.id}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            className={`p-4 rounded-lg shadow-lg ${
-              notif.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-white border-l-4 border-blue-500'
-            }`}
-          >
-            <p className="font-semibold">{notif.title}</p>
-            <p className="text-sm text-gray-600">{notif.message}</p>
-          </motion.div>
-        ))}
+        <AnimatePresence>
+          {notifications.map(notif => (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              className={`p-4 rounded-lg shadow-lg ${
+                notif.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-500' : 'bg-white border-l-4 border-blue-500'
+              }`}
+            >
+              <p className="font-semibold">{notif.title}</p>
+              <p className="text-sm text-gray-600">{notif.message}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       {/* Main Content */}
@@ -205,7 +204,7 @@ export default function DashboardClient({
           <QuickActions orgId={org?.id} />
         </div>
 
-        {/* Stats Cards - FIXED: StatsCards expects organizationId, not individual stats */}
+        {/* Stats Cards */}
         <div className="mb-8">
           <StatsCards organizationId={org?.id} />
         </div>
@@ -220,9 +219,8 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* CONDITIONAL CONTENT - Show either regular dashboard OR breeder dashboard */}
+        {/* Conditional Content */}
         {showBreeder ? (
-          // BREEDER VIEW - Full screen breeder component
           <div className="mt-4">
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -247,36 +245,24 @@ export default function DashboardClient({
             }} />
           </div>
         ) : (
-          // REGULAR DASHBOARD VIEW
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - 2/3 width */}
+            {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Inventory Alerts */}
               {lowStock.length > 0 && (
                 <InventoryAlerts organizationId={org?.id} lowStockThreshold={5} />
               )}
-
-              {/* Recent Activity */}
               <RecentActivity organizationId={org?.id} limit={10} />
-
-              {/* Task List */}
-              <TaskList 
-                tasks={recentTasks}
-                orgId={org?.id}
-              />
+              <TaskList tasks={recentTasks} orgId={org?.id} />
             </div>
 
-            {/* Right Column - 1/3 width */}
+            {/* Right Column */}
             <div className="space-y-6">
-              {/* Staff Online */}
               <StaffOnline 
                 staff={recentStaff}
                 attendance={attendanceToday}
                 totalStaff={staffCount}
                 activeStaff={activeStaff}
               />
-
-              {/* Performance Metrics */}
               <PerformanceMetrics
                 taskCompletion={taskCount > 0 ? ((taskCount - pendingTasks) / taskCount * 100) : 0}
                 salesTarget={totalSales}
@@ -290,3 +276,6 @@ export default function DashboardClient({
     </div>
   );
 }
+
+// Wrap with memo to prevent unnecessary re-renders
+export default memo(DashboardClient);
