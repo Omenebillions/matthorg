@@ -26,6 +26,8 @@ import { PerformanceMetrics } from './PerformanceMetrics';
 
 // NEW: Operations Tab (replaces BreederDashboard toggle)
 import OperationsTab from './tabs/operations';
+import StaffTab from './tabs/staff/StaffTab';
+import SalesTab from './tabs/sales/SalesTab';
 
 interface DashboardClientProps {
   user: any;
@@ -287,20 +289,19 @@ function DashboardClient({
               </div>
             )}
 
-            {activeTab === 'staff' && (
-              <div className="bg-white rounded-xl border p-6">
-                <h2 className="text-xl font-bold mb-6">Staff Management</h2>
-                {/* Staff management content will go here */}
-                <p className="text-gray-500">Staff management coming soon...</p>
-              </div>
+{activeTab === 'staff' && (
+  <StaffTab 
+    orgId={org?.id} 
+    currentUserId={user?.id}
+  />
             )}
 
-            {activeTab === 'sales' && (
-              <div className="bg-white rounded-xl border p-6">
-                <h2 className="text-xl font-bold mb-6">Sales Analysis</h2>
-                {/* Sales analysis content will go here */}
-                <p className="text-gray-500">Sales analysis coming soon...</p>
-              </div>
+{activeTab === 'sales' && (
+  <SalesTab 
+    orgId={org?.id}
+    initialSales={recentSales}
+    totalSales={totalSales}
+  />
             )}
 
             {activeTab === 'operations' && (
