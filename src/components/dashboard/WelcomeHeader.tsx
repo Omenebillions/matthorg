@@ -1,11 +1,10 @@
-// src/components/dashboard/WelcomeHeader.tsx
+// /home/user/matthorg/src/components/dashboard/WelcomeHeader.tsx
 'use client';
 
 import { motion } from 'framer-motion';
 import {
   BuildingOfficeIcon,
   SunIcon,
-  MoonIcon,
   SparklesIcon,
   BellIcon,
   Cog6ToothIcon,
@@ -13,10 +12,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface WelcomeHeaderProps {
   user: {
-    full_name: string;
+    first_name?: string;
+    last_name?: string;
     role?: string;
     avatar_url?: string;
   };
@@ -25,12 +27,26 @@ interface WelcomeHeaderProps {
     logo_url?: string;
     industry?: string;
   };
+  stats?: {
+    todaySales: number;
+    lowStock: number;
+    pendingTasks: number;
+    staffOnline: number;
+    totalStaff: number;
+  };
 }
 
-export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
+export default function WelcomeHeader({ user, org, stats }: WelcomeHeaderProps) {
   const [greeting, setGreeting] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
+  // Get display name (combine first and last name)
+  const displayName = user.first_name && user.last_name 
+    ? `${user.first_name} ${user.last_name}`
+    : user.first_name || user.last_name || 'there';
 
   // Set greeting based on time of day
   useEffect(() => {
@@ -56,6 +72,11 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
   ];
   const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -77,7 +98,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-3xl font-bold">
-                {greeting}, {user.full_name || 'there'}!
+                {greeting}, {displayName}!
               </h1>
               <SparklesIcon className="w-6 h-6 text-yellow-300 animate-pulse" />
             </div>
@@ -125,7 +146,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           {/* Notifications */}
           <button className="relative p-2 hover:bg-white/10 rounded-lg transition">
             <BellIcon className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
           {/* Settings */}
@@ -142,7 +163,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
               {user.avatar_url ? (
                 <img 
                   src={user.avatar_url} 
-                  alt={user.full_name}
+                  alt={displayName}
                   className="w-8 h-8 rounded-full border-2 border-white/50"
                 />
               ) : (
@@ -155,7 +176,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 text-gray-700"
+                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 text-gray-700 z-50"
               >
                 <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100 text-sm">
                   Your Profile
@@ -164,7 +185,10 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
                   Settings
                 </Link>
                 <hr className="my-1" />
-                <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600">
+                <button 
+                  onClick={handleSignOut}
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+                >
                   Sign Out
                 </button>
               </motion.div>
@@ -181,7 +205,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           </div>
           <div>
             <p className="text-xs text-blue-200">Today's Sales</p>
-            <p className="text-sm font-semibold">₦0</p>
+            <p className="text-sm font-semibold">₦{stats?.todaySales?.toLocaleString() || '0'}</p>
           </div>
         </div>
         
@@ -191,7 +215,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           </div>
           <div>
             <p className="text-xs text-blue-200">Low Stock</p>
-            <p className="text-sm font-semibold">0 items</p>
+            <p className="text-sm font-semibold">{stats?.lowStock || 0} items</p>
           </div>
         </div>
         
@@ -201,7 +225,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           </div>
           <div>
             <p className="text-xs text-blue-200">Pending Tasks</p>
-            <p className="text-sm font-semibold">0</p>
+            <p className="text-sm font-semibold">{stats?.pendingTasks || 0}</p>
           </div>
         </div>
         
@@ -211,7 +235,7 @@ export default function WelcomeHeader({ user, org }: WelcomeHeaderProps) {
           </div>
           <div>
             <p className="text-xs text-blue-200">Staff Online</p>
-            <p className="text-sm font-semibold">0/0</p>
+            <p className="text-sm font-semibold">{stats?.staffOnline || 0}/{stats?.totalStaff || 0}</p>
           </div>
         </div>
       </div>

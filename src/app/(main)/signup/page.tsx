@@ -1,3 +1,4 @@
+// /home/user/matthorg/src/app/(main)/signup/page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -11,7 +12,8 @@ const supabase = createClient();
 export default function SignupPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
     company_name: "",
@@ -22,9 +24,127 @@ export default function SignupPage() {
   const [error, setError] = useState("");
 
   const industries = [
-    "Technology", "Finance", "Education", "Healthcare",
-    "Entertainment", "Construction", "Agriculture",
-    "Transportation", "Manufacturing", "Retail", "Other",
+    // Professional Services
+    "Accounting & Tax",
+    "Legal / Law Firm",
+    "Consulting",
+    "Marketing Agency",
+    "Architecture",
+    "Engineering",
+    "Financial Services",
+    
+    // Healthcare & Wellness
+    "Healthcare / Medical",
+    "Dental Practice",
+    "Veterinary",
+    "Pharmacy",
+    "Fitness / Gym",
+    "Yoga / Wellness",
+    "Spa / Salon",
+    "Physical Therapy",
+    
+    // Food & Beverage
+    "Restaurant",
+    "Cafe / Coffee Shop",
+    "Bar / Nightclub",
+    "Catering",
+    "Bakery",
+    "Food Truck",
+    "Brewery / Distillery",
+    
+    // Retail & E-commerce
+    "Retail Store",
+    "E-commerce / Online Store",
+    "Fashion / Clothing",
+    "Electronics",
+    "Furniture / Home Decor",
+    "Grocery / Supermarket",
+    "Auto Parts",
+    
+    // Agriculture & Animals
+    "Dog Breeding",
+    "Livestock / Ranch",
+    "Poultry Farming",
+    "Crop Farming",
+    "Fishery / Aquaculture",
+    "Pet Store",
+    "Kennel / Boarding",
+    
+    // Construction & Trades
+    "Construction",
+    "Contracting",
+    "Electrical",
+    "Plumbing",
+    "HVAC",
+    "Landscaping",
+    "Painting",
+    "Roofing",
+    
+    // Real Estate & Property
+    "Real Estate Agency",
+    "Property Management",
+    "Rentals / Leasing",
+    
+    // Transportation & Logistics
+    "Logistics / Trucking",
+    "Delivery Service",
+    "Taxi / Ride Share",
+    "Moving Company",
+    "Auto Repair / Mechanic",
+    "Car Wash / Detailing",
+    
+    // Education & Training
+    "School / Education",
+    "Daycare / Preschool",
+    "Tutoring",
+    "Training Center",
+    "Music Lessons",
+    "Driving School",
+    
+    // Arts & Entertainment
+    "Photography",
+    "Videography",
+    "Event Planning",
+    "Wedding Services",
+    "Music / Band",
+    
+    // Beauty & Personal Care
+    "Hair Salon",
+    "Barber Shop",
+    "Nail Salon",
+    "Makeup Artist",
+    
+    // Home Services
+    "Cleaning Service",
+    "Pest Control",
+    "Handyman",
+    "Home Security",
+    
+    // Technology
+    "Software / Tech",
+    "IT Services",
+    "Web Development",
+    "Digital Agency",
+    
+    // Non-profit & Religious
+    "Non-profit / Charity",
+    "Church / Religious",
+    
+    // Manufacturing & Industrial
+    "Manufacturing",
+    "Printing",
+    "Fabrication",
+    "Wholesale / Distribution",
+    
+    // Sports & Recreation
+    "Sports Club",
+    "Fitness Center",
+    "Golf Course",
+    "Martial Arts",
+    "Dance Studio",
+    
+    // Other
+    "Other (Please Specify)"
   ];
 
   const handleChange = (
@@ -35,7 +155,11 @@ export default function SignupPage() {
   };
 
   const generateSubdomain = (name: string) =>
-    name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    name.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +167,14 @@ export default function SignupPage() {
     setError("");
 
     try {
-      const finalIndustry = form.industry === "Other" ? form.other_industry : form.industry;
+      const finalIndustry = form.industry === "Other (Please Specify)" ? form.other_industry : form.industry;
       const slug = generateSubdomain(form.company_name);
+      const fullName = `${form.first_name} ${form.last_name}`.trim();
       
+      if (slug.length < 3) {
+        throw new Error("Company name is too short to create a valid web address.");
+      }
+
       console.log("📝 Signup attempt with:", {
         email: form.email,
         company: form.company_name,
@@ -58,7 +187,9 @@ export default function SignupPage() {
         password: form.password,
         options: {
           data: {
-            full_name: form.name,
+            full_name: fullName,
+            first_name: form.first_name,
+            last_name: form.last_name,
             company_name: form.company_name,
             organization_slug: slug,
           },
@@ -75,7 +206,7 @@ export default function SignupPage() {
       
       console.log("✅ User created:", userId);
 
-      // 2️⃣ Insert Organization with detailed error logging
+      // 2️⃣ Insert Organization
       console.log("🏢 Creating organization:", {
         user_id: userId,
         name: form.company_name,
@@ -102,15 +233,10 @@ export default function SignupPage() {
           hint: orgError.hint
         });
         
-        // Show specific error to user
         if (orgError.code === '23505') {
           throw new Error(`Company name "${form.company_name}" is already taken. Please choose another.`);
         } else if (orgError.code === '42501') {
           throw new Error("Permission denied. Please check database permissions.");
-        } else if (orgError.code === '23502') {
-          throw new Error("Missing required field. Please contact support.");
-        } else if (orgError.code === '42P01') {
-          throw new Error("Database table not found. Please contact support.");
         } else {
           throw new Error(`Organization setup failed: ${orgError.message}`);
         }
@@ -118,7 +244,7 @@ export default function SignupPage() {
 
       console.log("✅ Organization created:", org.id);
 
-      // 3️⃣ Insert Staff Profile
+      // 3️⃣ Insert Staff Profile with First/Last Name only
       const allPermissions = [
         "task:create", "task:assign", "task:view",
         "inventory:add", "inventory:view",
@@ -130,7 +256,8 @@ export default function SignupPage() {
 
       const { error: staffError } = await supabase.from("staff_profiles").insert({
         id: userId,
-        full_name: form.name,
+        first_name: form.first_name,
+        last_name: form.last_name,
         email: form.email,
         role: "ceo",
         permissions: allPermissions,
@@ -145,10 +272,8 @@ export default function SignupPage() {
       console.log("✅ Staff profile created successfully");
 
       // 4️⃣ Success!
-      setError(""); // Clear any errors
-      alert("Account created! Please check your email to verify your account before logging in.");
-      
-      // Redirect to login page
+      setError("");
+      alert(`Account created! Welcome, ${form.first_name}! Please check your email to verify your account.`);
       router.push("/login?message=Please verify your email");
       
     } catch (err: any) {
@@ -195,14 +320,26 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              name="name"
-              placeholder="Full Name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
-            />
+            {/* First & Last Name Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                name="first_name"
+                placeholder="First Name"
+                value={form.first_name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+              <input
+                name="last_name"
+                placeholder="Last Name"
+                value={form.last_name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+            </div>
+
             <input
               name="email"
               type="email"
@@ -212,6 +349,7 @@ export default function SignupPage() {
               required
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
             />
+            
             <input
               name="password"
               type="password"
@@ -222,6 +360,7 @@ export default function SignupPage() {
               minLength={6}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
             />
+            
             <input
               name="company_name"
               placeholder="Company Name"
@@ -230,6 +369,7 @@ export default function SignupPage() {
               required
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
             />
+            
             <select
               name="industry"
               value={form.industry}
@@ -245,10 +385,10 @@ export default function SignupPage() {
               ))}
             </select>
 
-            {form.industry === "Other" && (
+            {form.industry === "Other (Please Specify)" && (
               <input
                 name="other_industry"
-                placeholder="Specify Industry"
+                placeholder="Please specify your industry"
                 value={form.other_industry}
                 onChange={handleChange}
                 required

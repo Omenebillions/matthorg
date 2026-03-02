@@ -197,7 +197,13 @@ function DashboardClient({
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Header */}
-        <WelcomeHeader user={user} org={org} />
+<WelcomeHeader 
+  user={{ 
+    first_name: user.first_name,
+    last_name: user.last_name 
+  }} 
+  org={org} 
+/>
 
         {/* Quick Actions */}
         <div className="mb-8">
