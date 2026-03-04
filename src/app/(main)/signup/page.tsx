@@ -31,7 +31,6 @@ export default function SignupPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const industries = [
-    // Professional Services
     "Accounting & Tax",
     "Legal / Law Firm",
     "Consulting",
@@ -39,8 +38,6 @@ export default function SignupPage() {
     "Architecture",
     "Engineering",
     "Financial Services",
-    
-    // Healthcare & Wellness
     "Healthcare / Medical",
     "Dental Practice",
     "Veterinary",
@@ -49,8 +46,6 @@ export default function SignupPage() {
     "Yoga / Wellness",
     "Spa / Salon",
     "Physical Therapy",
-    
-    // Food & Beverage
     "Restaurant",
     "Cafe / Coffee Shop",
     "Bar / Nightclub",
@@ -58,8 +53,6 @@ export default function SignupPage() {
     "Bakery",
     "Food Truck",
     "Brewery / Distillery",
-    
-    // Retail & E-commerce
     "Retail Store",
     "E-commerce / Online Store",
     "Fashion / Clothing",
@@ -67,8 +60,6 @@ export default function SignupPage() {
     "Furniture / Home Decor",
     "Grocery / Supermarket",
     "Auto Parts",
-    
-    // Agriculture & Animals
     "Dog Breeding",
     "Livestock / Ranch",
     "Poultry Farming",
@@ -76,8 +67,6 @@ export default function SignupPage() {
     "Fishery / Aquaculture",
     "Pet Store",
     "Kennel / Boarding",
-    
-    // Construction & Trades
     "Construction",
     "Contracting",
     "Electrical",
@@ -86,75 +75,52 @@ export default function SignupPage() {
     "Landscaping",
     "Painting",
     "Roofing",
-    
-    // Real Estate & Property
     "Real Estate Agency",
     "Property Management",
     "Rentals / Leasing",
-    
-    // Transportation & Logistics
     "Logistics / Trucking",
     "Delivery Service",
     "Taxi / Ride Share",
     "Moving Company",
     "Auto Repair / Mechanic",
     "Car Wash / Detailing",
-    
-    // Education & Training
     "School / Education",
     "Daycare / Preschool",
     "Tutoring",
     "Training Center",
     "Music Lessons",
     "Driving School",
-    
-    // Arts & Entertainment
     "Photography",
     "Videography",
     "Event Planning",
     "Wedding Services",
     "Music / Band",
-    
-    // Beauty & Personal Care
     "Hair Salon",
     "Barber Shop",
     "Nail Salon",
     "Makeup Artist",
-    
-    // Home Services
     "Cleaning Service",
     "Pest Control",
     "Handyman",
     "Home Security",
-    
-    // Technology
     "Software / Tech",
     "IT Services",
     "Web Development",
     "Digital Agency",
-    
-    // Non-profit & Religious
     "Non-profit / Charity",
     "Church / Religious",
-    
-    // Manufacturing & Industrial
     "Manufacturing",
     "Printing",
     "Fabrication",
     "Wholesale / Distribution",
-    
-    // Sports & Recreation
     "Sports Club",
     "Fitness Center",
     "Golf Course",
     "Martial Arts",
     "Dance Studio",
-    
-    // Other
     "Other (Please Specify)"
   ];
 
-  // Filter industries based on search
   const filteredIndustries = useMemo(() => {
     if (!searchTerm) return industries;
     return industries.filter(ind => 
@@ -162,7 +128,6 @@ export default function SignupPage() {
     );
   }, [searchTerm]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -173,7 +138,6 @@ export default function SignupPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Generate subdomain from company name
   const generateSubdomain = (name: string) => {
     if (!name) return '';
     return name.toLowerCase()
@@ -184,7 +148,6 @@ export default function SignupPage() {
       .substring(0, 30);
   };
 
-  // Check subdomain availability
   useEffect(() => {
     const checkSubdomain = async () => {
       const subdomainToCheck = form.custom_subdomain || generateSubdomain(form.company_name);
@@ -209,7 +172,6 @@ export default function SignupPage() {
     return () => clearTimeout(timeout);
   }, [form.company_name, form.custom_subdomain]);
 
-  // Generate suggestions when company name changes
   useEffect(() => {
     if (!form.company_name) {
       setSubdomainSuggestions([]);
@@ -255,22 +217,10 @@ export default function SignupPage() {
 
     try {
       const finalIndustry = form.industry === "Other (Please Specify)" ? form.other_industry : form.industry;
-      
       const slug = form.custom_subdomain || generateSubdomain(form.company_name);
       
       if (slug.length < 3) {
         throw new Error("Subdomain must be at least 3 characters.");
-      }
-
-      // Final availability check
-      const { data: existing } = await supabase
-        .from('organizations')
-        .select('subdomain')
-        .eq('subdomain', slug)
-        .maybeSingle();
-
-      if (existing) {
-        throw new Error(`The subdomain "${slug}.mthorg.com" is already taken. Please choose another.`);
       }
 
       console.log("📝 Signup attempt with:", {
@@ -279,8 +229,8 @@ export default function SignupPage() {
         slug: slug
       });
 
-      // 1️⃣ Create Supabase Auth User with Metadata
-      const { data, error } = await supabase.auth.signUp({
+      // 1️⃣ Create Supabase Auth User
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -288,7 +238,6 @@ export default function SignupPage() {
             first_name: form.first_name,
             last_name: form.last_name,
             company_name: form.company_name,
-            organization_slug: slug,
           },
           emailRedirectTo: process.env.NODE_ENV === 'production'
             ? 'https://mthorg.com/auth/callback'
@@ -296,71 +245,59 @@ export default function SignupPage() {
         }
       });
 
-      if (error) throw new Error(error.message);
+      if (signUpError) throw signUpError;
       
       const userId = data.user?.id;
       if (!userId) throw new Error("User creation failed.");
       
       console.log("✅ User created:", userId);
 
-      // ✅ IMPORTANT: Set the session manually
-      if (data.session) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-        
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          // Wait a moment and try to refresh
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await supabase.auth.refreshSession();
-        } else {
-          console.log("✅ Session set successfully");
-        }
-      } else {
-        console.log("⏳ No session yet, waiting...");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await supabase.auth.refreshSession();
+      // Get access token
+      const accessToken = data.session?.access_token;
+      
+      if (!accessToken) {
+        // Email confirmation is required
+        console.log("⏳ Email confirmation required");
+        setError("Please check your email to verify your account. After verification, you'll need to complete your organization setup.");
+        setLoading(false);
+        return;
       }
 
-      // 2️⃣ Insert Organization
-      console.log("🏢 Creating organization:", {
-        user_id: userId,
+      // 2️⃣ Call Edge Function to create organization
+      const edgeFunctionUrl = "https://hflueseqjgdfeykbqmyd.supabase.co/functions/v1/create-organization";
+      
+      console.log("🏢 Calling Edge Function to create organization:", {
         name: form.company_name,
         industry: finalIndustry,
         subdomain: slug,
       });
 
-      const { data: org, error: orgError } = await supabase
-        .from("organizations")
-        .insert({
-          user_id: userId,
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: form.company_name,
           industry: finalIndustry,
           subdomain: slug,
-        })
-        .select()
-        .single();
+        }),
+      });
 
-      if (orgError) {
-        console.error("🔥 FULL ORG ERROR:", {
-          message: orgError.message,
-          code: orgError.code,
-          details: orgError.details,
-          hint: orgError.hint
-        });
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Edge function error:", result);
         
-        if (orgError.code === '23505') {
+        if (result.error?.includes('duplicate') || result.error?.includes('already exists')) {
           throw new Error(`The subdomain "${slug}.mthorg.com" is already taken. Please choose another.`);
-        } else if (orgError.code === '42501') {
-          throw new Error("Permission denied. Please check database permissions.");
         } else {
-          throw new Error(`Organization setup failed: ${orgError.message}`);
+          throw new Error(result.error || result.details || "Failed to create organization");
         }
       }
 
-      console.log("✅ Organization created:", org.id);
+      console.log("✅ Organization created:", result.organization);
 
       // 3️⃣ Insert Staff Profile
       const allPermissions = [
@@ -379,7 +316,7 @@ export default function SignupPage() {
         email: form.email,
         role: "ceo",
         permissions: allPermissions,
-        organization_id: org.id,
+        organization_id: result.organization.id,
       });
 
       if (staffError) {
@@ -489,7 +426,6 @@ export default function SignupPage() {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
             />
 
-            {/* Subdomain Field */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Your Workspace URL
@@ -508,7 +444,6 @@ export default function SignupPage() {
                 </span>
               </div>
 
-              {/* Subdomain Suggestions */}
               {subdomainSuggestions.length > 0 && !form.custom_subdomain && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {subdomainSuggestions.map((suggestion) => (
@@ -524,7 +459,6 @@ export default function SignupPage() {
                 </div>
               )}
 
-              {/* Availability Indicator */}
               {generatedSubdomain && generatedSubdomain.length >= 3 && (
                 <div className="flex items-center gap-2 text-sm mt-1">
                   {checkingSubdomain ? (
@@ -547,7 +481,6 @@ export default function SignupPage() {
               )}
             </div>
             
-            {/* Industry Search Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Industry <span className="text-gray-400">(search or select)</span>
