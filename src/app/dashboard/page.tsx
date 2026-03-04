@@ -1,355 +1,374 @@
-// /home/user/matthorg/src/components/dashboard/tabs/operations/index.tsx
-'use client';
+// /home/user/matthorg/src/app/dashboard/page.tsx
+import { createClient } from '@/utils/supabase/server'
+import { notFound, redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import DashboardClient from '@/components/dashboard/DashboardClient'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
-import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  ClipboardDocumentListIcon,
-  CubeIcon,
-  CurrencyDollarIcon,
-  ArrowTopRightOnSquareIcon,
-  PlusIcon,
-} from '@heroicons/react/24/outline';
+// Types for better type safety
+interface Sale { 
+  id: string;
+  amount: number; 
+  created_at: string;
+  customer_name?: string;
+  payment_method?: string;
+}
 
-interface OperationsTabProps {
-  orgId: string;
-  industry: string;
-  // Data from parent
-  taskCount: number;
-  pendingTasks: number;
-  inventoryCount: number;
-  lowStock: any[];
+interface Expense { 
+  id: string;
+  amount: number; 
+  category: string; 
+  created_at: string;
+  description?: string;
+  vendor?: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  due_date?: string;
+  created_at: string;
+}
+
+interface Staff {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  status: string;
+  avatar_url?: string;
+  last_seen?: string;
+}
+
+interface Inventory {
+  id: string;
+  item_name: string;
+  quantity: number;
+  reorder_point?: number;
+  category?: string;
+}
+
+interface DashboardData {
+  user: any;
+  org: any;
   totalSales: number;
   totalExpenses: number;
   netProfit: number;
-  recentTasks: any[];
-  recentExpenses: any[];
+  salesTrend: { percentage: string; direction: 'up' | 'down' | 'flat' };
+  expenseTrend: { percentage: string; direction: 'up' | 'down' | 'flat' };
+  inventoryCount: number;
+  staffCount: number;
+  activeStaff: number;
+  pendingTasks: number;
+  taskCount: number;
+  milestoneCount: number;
+  jobCount: number;
+  recentSales: Sale[];
+  recentExpenses: Expense[];
+  lowStock: Inventory[];
+  recentStaff: Staff[];
+  recentTasks: Task[];
+  recentMilestones: any[];
+  recentJobs: any[];
+  attendanceToday: any[];
+  recentActivity: any[];
+  chartData: any[];
 }
 
-export default function OperationsTab({ 
-  orgId, 
-  industry,
-  taskCount = 0,
-  pendingTasks = 0,
-  inventoryCount = 0,
-  lowStock = [],
-  totalSales = 0,
-  totalExpenses = 0,
-  netProfit = 0,
-  recentTasks = [],
-  recentExpenses = [],
-}: OperationsTabProps) {
-  const router = useRouter();
-  const supabase = createClient();
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [expenseForm, setExpenseForm] = useState({
-    amount: '',
-    category: '',
-    description: '',
-  });
-
-  // Handle quick expense add
-  const handleAddExpense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { error } = await supabase
-        .from('expenses')
-        .insert({
-          organization_id: orgId,
-          amount: parseFloat(expenseForm.amount),
-          category: expenseForm.category,
-          description: expenseForm.description,
-          created_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      // Reset form and close modal
-      setExpenseForm({ amount: '', category: '', description: '' });
-      setShowExpenseModal(false);
-      
-      // Refresh the page to show new data
-      router.refresh();
-      
-    } catch (error: any) {
-      console.error('Error adding expense:', error);
-      alert('Failed to add expense: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+// Helper function to calculate trends
+function calculateTrend(data: any[] | null, field: string = 'amount'): { percentage: string; direction: 'up' | 'down' | 'flat' } {
+  if (!data || data.length < 2) {
+    return { percentage: "0", direction: "flat" };
+  }
+  
+  const first = data[data.length - 1]?.[field] || 0;
+  const last = data[0]?.[field] || 0;
+  
+  if (first === 0) return { percentage: "0", direction: "flat" };
+  
+  const change = ((last - first) / first) * 100;
+  const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+  
+  return {
+    percentage: Math.abs(Math.round(change)).toString(),
+    direction
   };
+}
 
-  // Core feature cards
-  const features = [
-    {
-      id: 'tasks',
-      title: 'Tasks',
-      icon: ClipboardDocumentListIcon,
-      color: 'blue',
-      stats: [
-        { label: 'Total', value: taskCount },
-        { label: 'Pending', value: pendingTasks },
-      ],
-      href: '/dashboard/tasks',
-      description: 'Manage your team tasks',
-    },
-    {
-      id: 'inventory',
-      title: 'Inventory',
-      icon: CubeIcon,
-      color: 'green',
-      stats: [
-        { label: 'Items', value: inventoryCount },
-        { label: 'Low Stock', value: lowStock.length },
-      ],
-      href: '/dashboard/inventory',
-      description: 'Track stock levels',
-    },
-    {
-      id: 'expenses',
-      title: 'Expenses',
-      icon: CurrencyDollarIcon,
-      color: 'yellow',
-      stats: [
-        { label: 'Total', value: `$${totalExpenses.toLocaleString()}` },
-        { label: 'This Month', value: 'View all' },
-      ],
-      href: '/dashboard/expenses',
-      description: 'Track business expenses',
-    },
-  ];
+// Helper to get greeting based on time of day
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Business Operations</h2>
-            <p className="text-gray-500">Manage your core business activities</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push('/dashboard/tasks/new')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-            >
-              <PlusIcon className="w-5 h-5" />
-              New Task
-            </button>
-            <button
-              onClick={() => setShowExpenseModal(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-            >
-              Quick Expense
-            </button>
-          </div>
-        </div>
-      </div>
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  
+  try {
+    // 1. Get user session with error handling
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) {
+      console.error('Auth error:', userError)
+      redirect('/login?error=Authentication failed')
+    }
+    if (!user) redirect('/login')
 
-      {/* Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {features.map((feature, index) => {
-          const Icon = feature.icon;
-          return (
-            <motion.div
-              key={feature.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-sm hover:shadow-md transition"
-            >
-              <Link href={feature.href} className="block p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 bg-${feature.color}-100 rounded-lg text-${feature.color}-600`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <ArrowTopRightOnSquareIcon className="w-5 h-5 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">{feature.title}</h3>
-                <p className="text-sm text-gray-500 mb-4">{feature.description}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {feature.stats.map((stat, i) => (
-                    <div key={i} className="text-center p-2 bg-gray-50 rounded">
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="font-semibold text-gray-900">{stat.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
+    // 2. Get staff profile using user.id
+    const { data: staff, error: staffError } = await supabase
+      .from('staff_profiles')
+      .select('*, role:roles(name)')
+      .eq('id', user.id)
+      .single()
 
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <p className="text-sm text-gray-500 mb-1">Total Sales</p>
-          <p className="text-2xl font-bold text-green-600">${totalSales.toLocaleString()}</p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <p className="text-sm text-gray-500 mb-1">Total Expenses</p>
-          <p className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <p className="text-sm text-gray-500 mb-1">Net Profit</p>
-          <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ${netProfit.toLocaleString()}
+    if (staffError || !staff) {
+      console.error('Staff profile error:', staffError)
+      redirect('/login?error=Staff profile not found')
+    }
+
+    // 3. Get organization details
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', staff.organization_id)
+      .single()
+    
+    if (orgError || !org) {
+      console.error('Organization error:', orgError)
+      notFound()
+    }
+
+    // 4. Fetch all data with error handling
+    const [
+      salesResult,
+      expensesResult,
+      invCountResult,
+      lowStockResult,
+      staffListResult,
+      tasksResult,
+      pendingTasksResult,
+      recentActivityResult,
+      attendanceResult,
+      milestonesResult,
+      jobsResult
+    ] = await Promise.allSettled([
+      // Sales - last 30 days for trends
+      supabase
+        .from('sales')
+        .select('id, amount, created_at, customer_name, payment_method')
+        .eq('organization_id', org.id)
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50),
+      
+      // Expenses - last 30 days
+      supabase
+        .from('expenses')
+        .select('id, amount, category, created_at, description, vendor')
+        .eq('organization_id', org.id)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      
+      // Inventory count
+      supabase
+        .from('inventory')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', org.id)
+        .eq('status', 'active'),
+      
+      // Low stock items (below reorder point or < 10)
+      supabase
+        .from('inventory')
+        .select('id, item_name, quantity, reorder_point, category')
+        .eq('organization_id', org.id)
+        .or(`quantity.lt.10,and(quantity.lte.reorder_point)`)
+        .order('quantity', { ascending: true })
+        .limit(10),
+      
+      // Staff list
+      supabase
+        .from('staff_profiles')
+        .select('id, first_name, last_name, email, role, status, avatar_url, last_seen')
+        .eq('organization_id', org.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      
+      // Recent tasks
+      supabase
+        .from('tasks')
+        .select('id, title, status, priority, due_date, created_at, assignee_id')
+        .eq('organization_id', org.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      
+      // Pending tasks count
+      supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', org.id)
+        .eq('status', 'pending'),
+      
+      // Recent activity (combined sales and expenses)
+      Promise.all([
+        supabase
+          .from('sales')
+          .select('id, amount, created_at, customer_name, payment_method')
+          .eq('organization_id', org.id)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('expenses')
+          .select('id, amount, category, created_at, description, vendor')
+          .eq('organization_id', org.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ]),
+      
+      // Today's attendance
+      supabase
+        .from('attendance')
+        .select('id, staff_id, check_in, check_out, status')
+        .eq('organization_id', org.id)
+        .eq('date', new Date().toISOString().split('T')[0])
+        .order('check_in', { ascending: false }),
+      
+      // Milestones count
+      supabase
+        .from('milestones')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', org.id)
+        .neq('status', 'completed'),
+      
+      // Jobs count
+      supabase
+        .from('jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', org.id)
+        .neq('status', 'completed')
+    ]);
+
+    // Process results with fallbacks for failed queries
+    const sales = salesResult.status === 'fulfilled' ? salesResult.value : { data: [], error: null };
+    const expenses = expensesResult.status === 'fulfilled' ? expensesResult.value : { data: [], error: null };
+    const invCount = invCountResult.status === 'fulfilled' ? invCountResult.value : { count: 0, error: null };
+    const lowStock = lowStockResult.status === 'fulfilled' ? lowStockResult.value : { data: [], error: null };
+    const staffList = staffListResult.status === 'fulfilled' ? staffListResult.value : { data: [], error: null };
+    const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : { data: [], error: null };
+    const pendingTasks = pendingTasksResult.status === 'fulfilled' ? pendingTasksResult.value : { count: 0, error: null };
+    const recentActivity = recentActivityResult.status === 'fulfilled' ? recentActivityResult.value : [[], []];
+    const attendance = attendanceResult.status === 'fulfilled' ? attendanceResult.value : { data: [], error: null };
+    const milestones = milestonesResult.status === 'fulfilled' ? milestonesResult.value : { count: 0, error: null };
+    const jobs = jobsResult.status === 'fulfilled' ? jobsResult.value : { count: 0, error: null };
+
+    // Calculate totals with proper typing
+    const totalSales = (sales.data as Sale[] | null)?.reduce((sum, sale) => sum + (sale.amount || 0), 0) || 0
+    const totalExpenses = (expenses.data as Expense[] | null)?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0
+
+    // Calculate trends from actual data
+    const salesTrend = calculateTrend(sales.data as Sale[] | null, 'amount')
+    const expenseTrend = calculateTrend(expenses.data as Expense[] | null, 'amount')
+
+    // Prepare chart data (last 7 days)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      return date.toISOString().split('T')[0]
+    }).reverse()
+
+    const salesByDay = (sales.data || []).reduce((acc: any, sale) => {
+      const day = sale.created_at.split('T')[0]
+      acc[day] = (acc[day] || 0) + sale.amount
+      return acc
+    }, {})
+
+    const expensesByDay = (expenses.data || []).reduce((acc: any, exp) => {
+      const day = exp.created_at.split('T')[0]
+      acc[day] = (acc[day] || 0) + exp.amount
+      return acc
+    }, {})
+
+    const chartData = last7Days.map(date => ({
+      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      sales: salesByDay[date] || 0,
+      expenses: expensesByDay[date] || 0,
+      profit: (salesByDay[date] || 0) - (expensesByDay[date] || 0)
+    }))
+
+    // Calculate active staff
+    const activeStaff = staffList.data?.filter(s => s.status === 'active').length || 0
+
+    // Combine recent activity for the activity feed
+    const combinedActivity = [
+      ...(sales.data || []).map(s => ({ ...s, type: 'sale' })),
+      ...(expenses.data || []).map(e => ({ ...e, type: 'expense' }))
+    ].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, 20)
+
+    // Prepare props for DashboardClient
+    const dashboardProps: DashboardData = {
+      user: {
+        ...staff,
+        full_name: `${staff.first_name || ''} ${staff.last_name || ''}`.trim() || staff.email,
+        greeting: getGreeting()
+      },
+      org: {
+        ...org,
+        plan: org.plan || 'Free',
+        subscription_status: org.subscription_status || 'active'
+      },
+      totalSales,
+      totalExpenses,
+      netProfit: totalSales - totalExpenses,
+      salesTrend,
+      expenseTrend,
+      inventoryCount: invCount.count || 0,
+      staffCount: staffList.data?.length || 0,
+      activeStaff,
+      pendingTasks: pendingTasks.count || 0,
+      taskCount: tasks.data?.length || 0,
+      milestoneCount: milestones.count || 0,
+      jobCount: jobs.count || 0,
+      recentSales: (sales.data || []).slice(0, 10),
+      recentExpenses: (expenses.data || []).slice(0, 10),
+      lowStock: lowStock.data || [],
+      recentStaff: staffList.data || [],
+      recentTasks: tasks.data || [],
+      recentMilestones: [],
+      recentJobs: [],
+      attendanceToday: attendance.data || [],
+      recentActivity: combinedActivity,
+      chartData
+    }
+
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardClient {...dashboardProps} />
+      </Suspense>
+    )
+
+  } catch (error) {
+    console.error('Dashboard error:', error)
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-6">
+            We couldn't load your dashboard. Please try again.
           </p>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <p className="text-sm text-gray-500 mb-1">Profit Margin</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0'}%
-          </p>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Tasks */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Recent Tasks</h3>
-            <Link href="/dashboard/tasks" className="text-blue-600 hover:underline text-sm">
-              View All
-            </Link>
-          </div>
-          <div className="divide-y">
-            {recentTasks.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No tasks yet. Create your first task.
-              </div>
-            ) : (
-              recentTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{task.title}</p>
-                      <p className="text-sm text-gray-500">
-                        Status: {task.status} • Priority: {task.priority}
-                      </p>
-                    </div>
-                    {task.due_date && (
-                      <span className="text-xs text-gray-400">
-                        Due {new Date(task.due_date).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Recent Expenses */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Recent Expenses</h3>
-            <Link href="/dashboard/expenses" className="text-blue-600 hover:underline text-sm">
-              View All
-            </Link>
-          </div>
-          <div className="divide-y">
-            {recentExpenses.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No expenses yet. Add your first expense.
-              </div>
-            ) : (
-              recentExpenses.slice(0, 5).map((expense) => (
-                <div key={expense.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{expense.category}</p>
-                      <p className="text-sm text-gray-500">{expense.description || 'No description'}</p>
-                    </div>
-                    <span className="font-semibold text-red-600">
-                      ${expense.amount.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Expense Modal */}
-      {showExpenseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
+          <a
+            href="/dashboard"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <h3 className="text-xl font-bold mb-4">Add Quick Expense</h3>
-            <form onSubmit={handleAddExpense} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Amount ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select
-                  required
-                  value={expenseForm.category}
-                  onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="">Select category</option>
-                  <option value="Supplies">Supplies</option>
-                  <option value="Equipment">Equipment</option>
-                  <option value="Utilities">Utilities</option>
-                  <option value="Rent">Rent</option>
-                  <option value="Payroll">Payroll</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <input
-                  type="text"
-                  value={expenseForm.description}
-                  onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-                  placeholder="What was this expense for?"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Adding...' : 'Add Expense'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowExpenseModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </motion.div>
+            Retry
+          </a>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )
+  }
 }
