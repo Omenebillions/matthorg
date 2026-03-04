@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import AddStaffModal from '@/components/dashboard/AddStaffModal'; // ✅ Keep this import
+import AddStaffModal from '@/components/dashboard/AddStaffModal';
 
 interface QuickActionsProps {
   orgId: string;
@@ -14,7 +14,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [showStaffModal, setShowStaffModal] = useState(false); // ✅ Only ONE declaration
+  const [showStaffModal, setShowStaffModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
 
@@ -102,54 +102,62 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
       e.preventDefault();
       setLoading(true);
       
-      // Insert sale record
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert({
-          organization_id: orgId,
-          product_id: form.product_id || null,
-          quantity: parseInt(form.quantity),
-          amount: parseFloat(form.amount),
-          customer_name: form.customer_name || null,
-          payment_method: form.payment_method,
-          notes: form.notes || null,
-          sale_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (saleError) {
-        console.error('Sale error:', saleError);
-        showNotif('error', `❌ Error: ${saleError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Update inventory if product was selected
-      if (form.product_id && selectedProduct) {
-        const { error: updateError } = await supabase
-          .from('inventory')
-          .update({ 
-            quantity: selectedProduct.quantity - parseInt(form.quantity),
-            updated_at: new Date().toISOString()
+      try {
+        // Insert sale record
+        const { data: sale, error: saleError } = await supabase
+          .from("sales")
+          .insert({
+            organization_id: orgId,
+            product_id: form.product_id || null,
+            quantity: parseInt(form.quantity),
+            amount: parseFloat(form.amount),
+            customer_name: form.customer_name || null,
+            payment_method: form.payment_method,
+            notes: form.notes || null,
+            sale_date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
           })
-          .eq('id', form.product_id);
+          .select()
+          .single();
 
-        if (updateError) {
-          console.error('Inventory update error:', updateError);
+        if (saleError) throw saleError;
+
+        // Update inventory if product was selected
+        if (form.product_id && selectedProduct) {
+          const { error: updateError } = await supabase
+            .from('inventory')
+            .update({ 
+              quantity: selectedProduct.quantity - parseInt(form.quantity),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', form.product_id);
+
+          if (updateError) {
+            console.error('Inventory update error:', updateError);
+            // Still show success for sale, but warn about inventory
+            showNotif('success', '✅ Sale recorded! (Inventory update failed - please check)');
+          } else {
+            showNotif('success', '✅ Sale recorded! Inventory updated.');
+          }
+        } else {
+          showNotif('success', '✅ Sale recorded!');
         }
-      }
 
-      setShowSaleModal(false);
-      setForm({ 
-        product_id: "", quantity: "1", amount: "", 
-        customer_name: "", payment_method: "cash", notes: "" 
-      });
-      setSelectedProduct(null);
-      setSearchTerm("");
-      showNotif('success', '✅ Sale added! Dashboard updating...');
-      setLoading(false);
+        // Reset form
+        setShowSaleModal(false);
+        setForm({ 
+          product_id: "", quantity: "1", amount: "", 
+          customer_name: "", payment_method: "cash", notes: "" 
+        });
+        setSelectedProduct(null);
+        setSearchTerm("");
+        
+      } catch (error: any) {
+        console.error('Sale error:', error);
+        showNotif('error', `❌ Failed to record sale: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
     };
 
     return (
@@ -304,7 +312,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
 
           <input
             type="text"
-            placeholder="Customer Name"
+            placeholder="Customer Name (Optional)"
             value={form.customer_name}
             onChange={(e) => setForm({...form, customer_name: e.target.value})}
             className="w-full px-4 py-2 border rounded-lg"
@@ -314,6 +322,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
             value={form.payment_method}
             onChange={(e) => setForm({...form, payment_method: e.target.value})}
             className="w-full px-4 py-2 border rounded-lg"
+            required
           >
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -332,9 +341,16 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition flex items-center justify-center gap-2"
           >
-            {loading ? "Processing Sale..." : "Complete Sale"}
+            {loading ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                Processing...
+              </>
+            ) : (
+              'Complete Sale'
+            )}
           </button>
         </form>
       </Modal>
@@ -342,7 +358,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
   };
 
   // ============================================
-  // ADD EXPENSE MODAL (Unchanged)
+  // ADD EXPENSE MODAL
   // ============================================
   const AddExpenseModal = () => {
     const [form, setForm] = useState({ 
@@ -356,25 +372,29 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
       e.preventDefault();
       setLoading(true);
       
-      const { error } = await supabase.from("expenses").insert({
-        organization_id: orgId,
-        amount: parseFloat(form.amount),
-        category: form.category,
-        description: form.description,
-        vendor: form.vendor || null,
-        expense_date: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      });
+      try {
+        const { error } = await supabase.from("expenses").insert({
+          organization_id: orgId,
+          amount: parseFloat(form.amount),
+          category: form.category,
+          description: form.description,
+          vendor: form.vendor || null,
+          expense_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
 
-      if (!error) {
+        if (error) throw error;
+
+        showNotif('success', '✅ Expense added successfully!');
         setShowExpenseModal(false);
         setForm({ amount: "", category: "", description: "", vendor: "" });
-        showNotif('success', '✅ Expense added! Dashboard updating...');
-      } else {
+        
+      } catch (error: any) {
         console.error('Expense error:', error);
-        showNotif('error', `❌ Error: ${error.message}`);
+        showNotif('error', `❌ Failed to add expense: ${error.message}`);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     return (
@@ -382,7 +402,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="number"
-            placeholder="Amount (₦)"
+            placeholder="Amount (₦) *"
             value={form.amount}
             onChange={(e) => setForm({...form, amount: e.target.value})}
             className="w-full px-4 py-2 border rounded-lg"
@@ -412,7 +432,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
             className="w-full px-4 py-2 border rounded-lg"
           />
           <textarea
-            placeholder="Description"
+            placeholder="Description *"
             value={form.description}
             onChange={(e) => setForm({...form, description: e.target.value})}
             className="w-full px-4 py-2 border rounded-lg"
@@ -422,9 +442,16 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-orange-300"
+            className="w-full py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-orange-300 transition flex items-center justify-center gap-2"
           >
-            {loading ? "Adding..." : "Add Expense"}
+            {loading ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                Adding...
+              </>
+            ) : (
+              'Add Expense'
+            )}
           </button>
         </form>
       </Modal>
@@ -542,6 +569,11 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
       setUploading(true);
       
       try {
+        // Validate
+        if (!form.name) throw new Error("Product name is required");
+        if (form.listing_type === 'sale' && !form.sale_price) throw new Error("Sale price is required");
+        if (form.listing_type === 'lease' && !form.lease_price) throw new Error("Lease price is required");
+
         // First create the product
         const productData: any = {
           organization_id: orgId,
@@ -575,17 +607,18 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
         }
 
         // Success!
+        showNotif('success', `✅ Product "${form.name}" added successfully${form.images.length > 0 ? ` with ${form.images.length} images` : ''}!`);
+        
         setShowProductModal(false);
         setForm({ 
           name: "", sku: "", sale_price: "", lease_price: "",
           listing_type: "sale", quantity: "1", category: "", 
           description: "", images: [] 
         });
-        showNotif('success', `✅ Product added with ${form.images.length} images!`);
         
       } catch (error: any) {
         console.error('Product error:', error);
-        showNotif('error', `❌ Error: ${error.message}`);
+        showNotif('error', `❌ Failed to add product: ${error.message}`);
       } finally {
         setLoading(false);
         setUploading(false);
@@ -780,13 +813,13 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
           <button
             type="submit"
             disabled={loading || uploading}
-            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-300"
+            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-300 transition flex items-center justify-center gap-2"
           >
             {loading || uploading ? (
-              <span className="flex items-center justify-center gap-2">
+              <>
                 <span className="animate-spin">⏳</span>
                 {uploading ? `Uploading ${uploadProgress}%` : 'Adding...'}
-              </span>
+              </>
             ) : (
               'Add Product'
             )}
@@ -832,9 +865,9 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
             exit={{ opacity: 0, y: -50 }}
             className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
               notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            } text-white`}
+            } text-white flex items-center gap-2`}
           >
-            {notification.message}
+            {notification.type === 'success' ? '✅' : '❌'} {notification.message}
           </motion.div>
         )}
       </AnimatePresence>
@@ -872,7 +905,7 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
       <AddExpenseModal />
       <AddProductModal />
       
-      {/* ✅ Use the imported AddStaffModal component */}
+      {/* Use the imported AddStaffModal component */}
       <AddStaffModal
         isOpen={showStaffModal}
         onClose={() => setShowStaffModal(false)}

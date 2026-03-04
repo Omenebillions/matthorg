@@ -35,70 +35,56 @@ interface UserProfile {
   avatar_url?: string;
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  type?: string;
+}
+
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+  organization?: Organization | null;
+  user?: UserProfile | null;
+  initialNotifications?: Notification[];
+}
+
+export default function DashboardLayout({ 
+  children, 
+  organization: initialOrg, 
+  user: initialUser,
+  initialNotifications = []
+}: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [org, setOrg] = useState<Organization | null>(null);
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [org] = useState<Organization | null>(initialOrg || null);
+  const [user] = useState<UserProfile | null>(initialUser || null);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [unreadCount, setUnreadCount] = useState(
+    initialNotifications.filter(n => !n.read).length
+  );
   
   const supabase = createClient();
 
-  // Fetch user and organization data
+  // Only set up real-time notifications if we have a user
   useEffect(() => {
-    const fetchUserAndOrg = async () => {
-      try {
-        // Get current user
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser) return;
-
-        // Get user profile
-        const { data: profile } = await supabase
-          .from("staff_profiles")
-          .select("id, full_name, email, role, avatar_url")
-          .eq("id", authUser.id)
-          .single();
-
-        if (profile) setUser(profile);
-
-        // Get organization
-        const { data: orgData, error: orgError } = await supabase
-          .from("organizations")
-          .select("id, name, logo_url, subdomain, industry, address")
-          .eq("user_id", authUser.id)
-          .single();
-
-        if (!orgError && orgData) setOrg(orgData);
-
-        // Get unread notifications count
-        const { count } = await supabase
-          .from("notifications")
-          .select("*", { count: 'exact', head: true })
-          .eq("user_id", authUser.id)
-          .eq("read", false);
-
-        setUnreadCount(count || 0);
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserAndOrg();
+    if (!user?.id) return;
 
     // Subscribe to real-time notifications
     const subscription = supabase
       .channel('notifications')
       .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
         (payload) => {
-          setNotifications(prev => [payload.new, ...prev]);
+          setNotifications(prev => [payload.new as Notification, ...prev]);
           setUnreadCount(prev => prev + 1);
         }
       )
@@ -107,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user?.id, supabase]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -123,6 +109,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .slice(0, 2);
   };
 
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+      
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user?.id)
+        .eq('read', false);
+      
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Top Bar */}
@@ -134,6 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <button 
           onClick={() => setSidebarOpen(true)}
           className="p-2 hover:bg-gray-100 rounded-lg transition"
+          aria-label="Open menu"
         >
           <Bars3Icon className="h-6 w-6 text-gray-700" />
         </button>
@@ -156,16 +174,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Organization Header */}
           <div className="flex items-center justify-between px-5 h-24 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center gap-3">
-              {loading ? (
-                <>
-                  <div className="h-12 w-12 rounded-full bg-gray-200 animate-pulse" />
-                  <div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
-                </>
-              ) : org?.logo_url ? (
+              {org?.logo_url ? (
                 <img
                   src={org.logo_url}
                   className="h-12 w-12 rounded-full object-cover border-2 border-white shadow"
-                  alt="Org Logo"
+                  alt={`${org.name} logo`}
                 />
               ) : (
                 <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow">
@@ -173,7 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
               <div>
-                <h2 className="font-bold text-gray-800">{org?.name || 'Loading...'}</h2>
+                <h2 className="font-bold text-gray-800">{org?.name || 'Dashboard'}</h2>
                 {org?.industry && (
                   <p className="text-xs text-gray-500">{org.industry}</p>
                 )}
@@ -184,6 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button 
               onClick={() => setSidebarOpen(false)}
               className="md:hidden p-1 hover:bg-gray-200 rounded"
+              aria-label="Close menu"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -200,12 +214,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="w-full flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition"
+                aria-label="User menu"
+                aria-expanded={profileMenuOpen}
               >
                 {user?.avatar_url ? (
                   <img
                     src={user.avatar_url}
                     className="h-10 w-10 rounded-full object-cover border"
-                    alt="User"
+                    alt={`${user.full_name}'s avatar`}
                   />
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white font-semibold">
@@ -230,11 +246,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-xl border py-1"
+                    role="menu"
                   >
                     <Link
                       href="/dashboard/profile"
                       className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm text-gray-700"
                       onClick={() => setProfileMenuOpen(false)}
+                      role="menuitem"
                     >
                       <UserCircleIcon className="h-4 w-4" />
                       Profile
@@ -243,6 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       href="/dashboard/settings"
                       className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm text-gray-700"
                       onClick={() => setProfileMenuOpen(false)}
+                      role="menuitem"
                     >
                       <Cog6ToothIcon className="h-4 w-4" />
                       Settings
@@ -251,6 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       href="/dashboard/help"
                       className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm text-gray-700"
                       onClick={() => setProfileMenuOpen(false)}
+                      role="menuitem"
                     >
                       <QuestionMarkCircleIcon className="h-4 w-4" />
                       Help
@@ -262,6 +282,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         handleSignOut();
                       }}
                       className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm text-red-600"
+                      role="menuitem"
                     >
                       <ArrowRightOnRectangleIcon className="h-4 w-4" />
                       Sign Out
@@ -283,6 +304,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 z-30 md:hidden"
             onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
@@ -295,11 +317,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg relative"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
             >
               <BellIcon className="h-5 w-5 text-gray-600" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {unreadCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
@@ -313,21 +337,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border py-2"
                 >
-                  <div className="px-4 py-2 border-b">
+                  <div className="px-4 py-2 border-b flex justify-between items-center">
                     <h3 className="font-semibold">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map((notif, i) => (
-                        <div key={i} className="px-4 py-2 hover:bg-gray-50 border-b last:border-0">
-                          <p className="text-sm">{notif.message}</p>
+                        <div 
+                          key={notif.id || i} 
+                          className={`px-4 py-3 hover:bg-gray-50 border-b last:border-0 cursor-pointer transition ${
+                            !notif.read ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => !notif.read && markAsRead(notif.id)}
+                        >
+                          <p className="text-sm text-gray-800">{notif.message}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             {new Date(notif.created_at).toLocaleString()}
                           </p>
+                          {notif.type && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                              {notif.type}
+                            </span>
+                          )}
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-4">
+                      <p className="text-sm text-gray-500 text-center py-8">
                         No notifications
                       </p>
                     )}
@@ -351,7 +394,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <img
                 src={user.avatar_url}
                 className="h-10 w-10 rounded-full object-cover border"
-                alt="User"
+                alt={`${user.full_name}'s avatar`}
               />
             ) : (
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">

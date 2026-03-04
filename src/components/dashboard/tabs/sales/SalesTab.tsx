@@ -115,6 +115,7 @@ export default function SalesTab({ orgId, initialSales = [], totalSales = 0 }: S
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-4">
           <h3 className="text-lg font-semibold mb-4">Sales Trend</h3>
+          {/* FIXED: Added orgId prop */}
           <SalesChart orgId={orgId} />
         </div>
         <div className="bg-white rounded-xl border p-4">
