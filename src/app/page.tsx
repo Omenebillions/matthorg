@@ -111,19 +111,19 @@ const TestimonialCarousel = () => {
   );
 };
 
-// Feature card with image
+// Feature card with Unsplash images
 const FeatureCard = ({ 
   title, 
   desc, 
   icon, 
-  image, 
+  imageUrl,
   color,
   index 
 }: { 
   title: string; 
   desc: string; 
   icon: string; 
-  image: string;
+  imageUrl: string;
   color: string;
   index: number;
 }) => (
@@ -136,15 +136,14 @@ const FeatureCard = ({
     className="bg-white rounded-3xl border overflow-hidden shadow-lg hover:shadow-xl transition-all"
   >
     <div className={`h-48 bg-gradient-to-br ${color} relative overflow-hidden`}>
-      <div className="absolute inset-0 bg-black/10" />
+      <div className="absolute inset-0 bg-black/20" />
       <div className="absolute bottom-4 left-4 text-4xl bg-white/20 backdrop-blur-sm w-12 h-12 rounded-full flex items-center justify-center">
         {icon}
       </div>
-      <Image
-        src={image}
+      <img
+        src={imageUrl}
         alt={title}
-        fill
-        className="object-cover mix-blend-overlay"
+        className="w-full h-full object-cover mix-blend-overlay"
       />
     </div>
     <div className="p-6">
@@ -407,20 +406,17 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right Content - Dashboard Preview */}
+            {/* Right Content - Dashboard Preview with Unsplash image */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={{ opacity: 1, x: 20 }}
               className="relative"
             >
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <Image
-                  src="/dashboard-preview.png"
+                <img
+                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
                   alt="Dashboard Preview"
-                  width={800}
-                  height={600}
                   className="w-full h-auto"
-                  priority
                 />
                 
                 {/* Floating elements */}
@@ -479,7 +475,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Features Grid with Unsplash images */}
       <section className="relative z-10 py-20">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -498,7 +494,7 @@ export default function HomePage() {
               title="Financials"
               desc="Automated revenue tracking, expense management, and predictive analytics with real-time insights."
               icon="💰"
-              image="/features/finance.jpg"
+              imageUrl="https://images.unsplash.com/photo-1554224154-22dec7ec8818?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
               color="from-green-500 to-emerald-600"
             />
             <FeatureCard
@@ -506,7 +502,7 @@ export default function HomePage() {
               title="Workflows"
               desc="Drag-and-drop automation builder with conditional logic, approvals, and custom triggers."
               icon="⚙️"
-              image="/features/workflow.jpg"
+              imageUrl="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
               color="from-blue-500 to-cyan-600"
             />
             <FeatureCard
@@ -514,7 +510,7 @@ export default function HomePage() {
               title="Clock-In"
               desc="Location-aware attendance with geofencing, biometric options, and timesheet automation."
               icon="📍"
-              image="/features/clockin.jpg"
+              imageUrl="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
               color="from-purple-500 to-pink-600"
             />
             <FeatureCard
@@ -522,7 +518,7 @@ export default function HomePage() {
               title="Task Manager"
               desc="Enterprise-grade project management with Gantt charts, dependencies, and team collaboration."
               icon="📅"
-              image="/features/tasks.jpg"
+              imageUrl="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
               color="from-orange-500 to-red-600"
             />
           </div>
