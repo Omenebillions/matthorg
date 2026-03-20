@@ -10,7 +10,6 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   XMarkIcon,
-  CheckIcon,
   DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +17,8 @@ import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { useOrganization } from '@/hooks/useOrganization';
 import QuickActions from '@/components/dashboard/QuickActions';
+import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 
 // Type definitions
 interface InventoryItem {
@@ -35,6 +36,7 @@ interface InventoryItem {
   supplier?: string | null;
   location?: string | null;
   status: 'active' | 'inactive';
+  images?: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -89,7 +91,7 @@ function InventorySkeleton() {
   );
 }
 
-// Inventory Form Modal
+// Improved Inventory Form Modal with image upload
 function InventoryFormModal({ 
   isOpen, 
   onClose, 
@@ -99,7 +101,7 @@ function InventoryFormModal({
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  onSubmit: (data: InventoryFormData) => Promise<void>;
+  onSubmit: (data: InventoryFormData, images?: string[]) => Promise<void>;
   initialData?: InventoryItem | null;
   mode?: 'add' | 'edit';
 }) {
@@ -117,6 +119,12 @@ function InventoryFormModal({
     location: '',
     status: 'active',
   });
+
+  // Image upload state
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [compressionStats, setCompressionStats] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -149,14 +157,132 @@ function InventoryFormModal({
         location: '',
         status: 'active',
       });
+      setImageFiles([]);
+      setImagePreviews([]);
+      setCompressionStats({});
     }
   }, [initialData, mode, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient();
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    setImageFiles(prev => [...prev, ...files]);
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    
+    const fileToRemove = imageFiles[index];
+    if (fileToRemove) {
+      const newStats = { ...compressionStats };
+      delete newStats[fileToRemove.name];
+      setCompressionStats(newStats);
+    }
+  };
+
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: 0.8,
+    };
+
+    try {
+      const originalSize = file.size / 1024 / 1024;
+      
+      if (file.size < 1024 * 1024) {
+        setCompressionStats(prev => ({
+          ...prev,
+          [file.name]: `⏭️ Skipped (${originalSize.toFixed(2)}MB)`
+        }));
+        return file;
+      }
+      
+      const compressedFile = await imageCompression(file, options);
+      const compressedSize = compressedFile.size / 1024 / 1024;
+      const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+      
+      setCompressionStats(prev => ({
+        ...prev,
+        [file.name]: `✅ ${originalSize.toFixed(2)}MB → ${compressedSize.toFixed(2)}MB (${savings}% saved)`
+      }));
+      
+      return compressedFile;
+    } catch (error) {
+      console.error('Compression error:', error);
+      setCompressionStats(prev => ({
+        ...prev,
+        [file.name]: `⚠️ Compression failed, using original`
+      }));
+      return file;
+    }
+  };
+
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+    
+    try {
+      for (const file of files) {
+        const compressedFile = await compressImage(file);
+        
+        // Sanitize filename
+        const fileExt = file.name.split('.').pop();
+        const baseName = file.name.split('.').slice(0, -1).join('.');
+        const sanitizedName = baseName
+          .replace(/[^a-zA-Z0-9]/g, '_')
+          .replace(/\s+/g, '_')
+          .substring(0, 50);
+        
+        const fileName = `${Date.now()}-${sanitizedName}.${fileExt}`;
+        const filePath = `products/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, compressedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+      alert(`Upload failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
+    
+    return uploadedUrls;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    let imageUrls: string[] = [];
+    if (imageFiles.length > 0) {
+      imageUrls = await uploadImages(imageFiles);
+    }
+    
+    await onSubmit(formData, imageUrls);
   };
 
   return (
@@ -177,6 +303,61 @@ function InventoryFormModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Image Upload Section */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold border-b pb-2">📸 Product Photos</h4>
+            <div>
+              <label className="block font-medium mb-1 text-sm text-gray-700">Upload Images</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="w-full p-2 border rounded bg-gray-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">Select one or more images for the product.</p>
+            </div>
+
+            {/* Compression Stats */}
+            {Object.keys(compressionStats).length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-800 mb-2">📊 Compression Results:</p>
+                {Object.entries(compressionStats).map(([filename, stat]) => (
+                  <p key={filename} className="text-xs text-blue-600 font-mono">
+                    {filename.substring(0, 20)}...: {stat}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Image Previews */}
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-4 gap-4 mt-2">
+                {imagePreviews.map((preview, idx) => (
+                  <div key={idx} className="relative">
+                    <div className="relative w-full aspect-square border rounded-lg overflow-hidden bg-gray-100">
+                      <Image 
+                        src={preview} 
+                        alt={`Preview ${idx + 1}`} 
+                        fill 
+                        className="object-cover" 
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => removeImage(idx)} 
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <hr />
+
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -372,9 +553,10 @@ function InventoryFormModal({
           <div className="flex gap-2 pt-4 border-t">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              disabled={uploading}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
             >
-              {mode === 'add' ? 'Add Item' : 'Save Changes'}
+              {uploading ? `Uploading ${imageFiles.length} images...` : mode === 'add' ? 'Add Item' : 'Save Changes'}
             </button>
             <button
               type="button"
@@ -567,7 +749,7 @@ export default function InventoryPage() {
   };
 
   // CRUD Operations
-  const handleAddItem = async (formData: InventoryFormData) => {
+  const handleAddItem = async (formData: InventoryFormData, images?: string[]) => {
     if (!organization?.id) {
       showToast('Organization not found', 'error');
       return;
@@ -593,6 +775,7 @@ export default function InventoryPage() {
           supplier: formData.supplier || null,
           location: formData.location || null,
           status: formData.status,
+          images: images || [],
           created_by: user.user.id,
           created_at: new Date().toISOString(),
         });
@@ -608,7 +791,7 @@ export default function InventoryPage() {
     }
   };
 
-  const handleUpdateItem = async (formData: InventoryFormData) => {
+  const handleUpdateItem = async (formData: InventoryFormData, images?: string[]) => {
     if (!editingItem) return;
 
     try {
@@ -627,6 +810,7 @@ export default function InventoryPage() {
           supplier: formData.supplier || null,
           location: formData.location || null,
           status: formData.status,
+          images: images || editingItem.images,
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingItem.id);

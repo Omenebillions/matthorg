@@ -18,15 +18,35 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // 2. Run Supabase session logic
+  // 2. Run Supabase session logic (gets the response from your updateSession function)
   const response = await updateSession(request)
 
-  // 3. Add CORS headers to the final response
-  const origin = request.headers.get('origin')
-  if (origin && response) {
-    response.headers.set('Access-Control-Allow-Origin', origin)
-    response.headers.set('Access-Control-Allow-Credentials', 'true')
-    response.headers.set('Vary', 'Origin')
+  // 3. Add security headers to the response
+  if (response) {
+    // Security headers
+    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    response.headers.set('X-XSS-Protection', '1; mode=block')
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+    )
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    )
+    
+    // Remove sensitive headers
+    response.headers.delete('X-Powered-By')
+    
+    // 4. Add CORS headers to the final response (your existing code)
+    const origin = request.headers.get('origin')
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin)
+      response.headers.set('Access-Control-Allow-Credentials', 'true')
+      response.headers.set('Vary', 'Origin')
+    }
   }
 
   return response

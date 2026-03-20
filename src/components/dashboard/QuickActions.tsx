@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import AddStaffModal from '@/components/dashboard/AddStaffModal';
+import { SparklesIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface QuickActionsProps {
   orgId: string;
@@ -17,12 +18,96 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  
+  // Smart Entry States
+  const [activeTab, setActiveTab] = useState<'buttons' | 'chat'>('buttons');
+  const [chatInput, setChatInput] = useState('');
+  const [parsedData, setParsedData] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [quota, setQuota] = useState({ remaining: 50, limit: 50 });
 
   const supabase = createClient();
 
   const showNotif = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Smart Entry Examples
+  const examples = [
+    "sold 3 bags of premium dog food for ₦45,000 to Mr. Johnson",
+    "bought office supplies for ₦12,500 from Ikeja Store",
+    "add product 'wireless mouse' 50 units @ ₦3,500",
+    "expense ₦25,000 for internet subscription",
+    "sold 2 puppies for ₦350,000 total"
+  ];
+
+  // Smart Entry Handlers
+  const handleParse = async () => {
+    if (!chatInput.trim()) return;
+    
+    setChatLoading(true);
+    try {
+      const response = await fetch('/api/parse-natural-language', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: chatInput, 
+          orgId 
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 403 && data.error?.includes('limit')) {
+          showNotif('error', 'Monthly parse limit reached. Please upgrade your plan.');
+          return;
+        }
+        throw new Error(data.error || 'Parse failed');
+      }
+      
+      setParsedData(data);
+      setShowPreview(true);
+      if (data.quota) setQuota(data.quota);
+      
+    } catch (error) {
+      console.error('Parse error:', error);
+      showNotif('error', 'Failed to parse input. Please try again.');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const confirmAndSave = async () => {
+    if (!parsedData) return;
+    
+    setChatLoading(true);
+    try {
+      const response = await fetch('/api/save-from-parser', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          parsedData,
+          orgId 
+        })
+      });
+      
+      if (response.ok) {
+        showNotif('success', '✅ Recorded successfully!');
+        setChatInput('');
+        setParsedData(null);
+        setShowPreview(false);
+        setActiveTab('buttons'); // Return to buttons after success
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch (error) {
+      showNotif('error', 'Failed to save. Please try again.');
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   // ============================================
@@ -854,6 +939,66 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
     );
   };
 
+ // Preview Card Component - FIXED
+const PreviewCard = ({ parsed }: { parsed: any }) => {
+  const colors: Record<string, string> = {
+    sale: 'bg-green-50 border-green-200',
+    expense: 'bg-orange-50 border-orange-200',
+    product: 'bg-blue-50 border-blue-200',
+    unknown: 'bg-gray-50 border-gray-200'
+  };
+
+  const type = parsed.type || 'unknown';
+  // Ensure we always have a valid color, fallback to unknown if type not in colors
+  const colorClass = colors[type] || colors.unknown;
+
+  return (
+    <div className={`p-4 rounded-lg border ${colorClass}`}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-semibold capitalize">{type}</span>
+        {parsed.confidence && (
+          <span className="text-xs bg-white px-2 py-1 rounded">
+            Confidence: {(parsed.confidence * 100).toFixed(0)}%
+          </span>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        {parsed.data?.product && (
+          <>
+            <span className="text-gray-500">Product:</span>
+            <span className="font-medium">{parsed.data.product}</span>
+          </>
+        )}
+        {parsed.data?.quantity && (
+          <>
+            <span className="text-gray-500">Quantity:</span>
+            <span>{parsed.data.quantity}</span>
+          </>
+        )}
+        {parsed.data?.amount && (
+          <>
+            <span className="text-gray-500">Amount:</span>
+            <span className="font-medium">₦{parsed.data.amount.toLocaleString()}</span>
+          </>
+        )}
+        {parsed.data?.customer && (
+          <>
+            <span className="text-gray-500">Customer:</span>
+            <span>{parsed.data.customer}</span>
+          </>
+        )}
+        {parsed.data?.category && (
+          <>
+            <span className="text-gray-500">Category:</span>
+            <span>{parsed.data.category}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
   return (
     <>
       {/* Notification Toast */}
@@ -872,40 +1017,169 @@ export default function QuickActions({ orgId }: QuickActionsProps) {
         )}
       </AnimatePresence>
 
-      {/* Quick Actions Buttons */}
-      <div className="flex flex-wrap gap-2">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b pb-2 mb-4">
         <button
-          onClick={() => setShowSaleModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+          onClick={() => setActiveTab('buttons')}
+          className={`px-4 py-2 rounded-t-lg transition ${
+            activeTab === 'buttons' 
+              ? 'bg-blue-100 text-blue-700 font-medium border-b-2 border-blue-600' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
         >
-          <span>💰</span> Add Sale
+          Quick Actions
         </button>
         <button
-          onClick={() => setShowExpenseModal(true)}
-          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+          onClick={() => setActiveTab('chat')}
+          className={`px-4 py-2 rounded-t-lg transition flex items-center gap-2 ${
+            activeTab === 'chat' 
+              ? 'bg-purple-100 text-purple-700 font-medium border-b-2 border-purple-600' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
         >
-          <span>📤</span> Add Expense
-        </button>
-        <button
-          onClick={() => setShowProductModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-        >
-          <span>📦</span> Add Product
-        </button>
-        <button
-          onClick={() => setShowStaffModal(true)}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-        >
-          <span>👥</span> Add Staff
+          <SparklesIcon className="w-4 h-4" />
+          Smart Entry
+          <span className="text-xs bg-purple-200 px-2 py-0.5 rounded-full">
+            {quota.remaining}/{quota.limit}
+          </span>
         </button>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === 'buttons' && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowSaleModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+          >
+            <span>💰</span> Add Sale
+          </button>
+          <button
+            onClick={() => setShowExpenseModal(true)}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+          >
+            <span>📤</span> Add Expense
+          </button>
+          <button
+            onClick={() => setShowProductModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+          >
+            <span>📦</span> Add Product
+          </button>
+          <button
+            onClick={() => setShowStaffModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+          >
+            <span>👥</span> Add Staff
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'chat' && (
+        <div className="bg-white rounded-xl border p-4">
+          {/* Input Area */}
+          <div className="relative">
+            <textarea
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Type what happened naturally..."
+              className="w-full p-4 border rounded-lg min-h-[100px] focus:ring-2 focus:ring-purple-500"
+              disabled={chatLoading}
+            />
+            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+              {chatInput.length}/500
+            </div>
+          </div>
+
+          {/* Examples */}
+          <div className="mt-4">
+            <p className="text-xs text-gray-500 mb-2">Try these examples:</p>
+            <div className="flex flex-wrap gap-2">
+              {examples.map((ex, i) => (
+                <button
+                  key={i}
+                  onClick={() => setChatInput(ex)}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full text-left"
+                >
+                  {ex.length > 40 ? ex.substring(0, 40) + '...' : ex}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Parse Button */}
+          <button
+            onClick={handleParse}
+            disabled={chatLoading || !chatInput.trim()}
+            className="mt-4 w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {chatLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Parsing...
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="w-4 h-4" />
+                Parse & Preview
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       <AddSaleModal />
       <AddExpenseModal />
       <AddProductModal />
       
-      {/* Use the imported AddStaffModal component */}
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && parsedData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-xl max-w-lg w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold mb-4">Confirm Entry</h3>
+              
+              <div className="bg-purple-50 p-4 rounded-lg mb-4">
+                <p className="text-sm text-gray-600">I understood:</p>
+                <p className="text-base font-medium mt-1">{parsedData.raw}</p>
+              </div>
+
+              <PreviewCard parsed={parsedData} />
+
+              <div className="mt-6 space-y-3">
+                <button
+                  onClick={confirmAndSave}
+                  disabled={chatLoading}
+                  className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                >
+                  <CheckIcon className="w-4 h-4" />
+                  Confirm & Save
+                </button>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AddStaffModal
         isOpen={showStaffModal}
         onClose={() => setShowStaffModal(false)}
