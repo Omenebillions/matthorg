@@ -31,6 +31,7 @@ import {
   createInvoiceWhatsAppText,
 } from '../utils/formatters';
 import { generateQuotePDF, generateInvoicePDF } from '../utils/pdfGenerator';
+import { shareInvoicePdfViaWhatsApp, shareQuotePdfViaWhatsApp } from '../utils/documentSharing';
 
 interface DashboardViewProps {
   state: AppState;
@@ -212,30 +213,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     window.open(link, '_blank');
   };
 
-  const handleSendQuoteWhatsApp = (q: Quote) => {
-    const text = createQuoteWhatsAppText(
-      q.customer_name,
-      business.business_name,
-      q.quote_number,
-      formatCurrency(q.total, business.currency),
-      q.notes ? q.notes.substring(0, 100) : undefined
-    );
-    const link = buildWhatsAppLink(q.customer_whatsapp || q.customer_phone, text);
-    window.open(link, '_blank');
+  const handleSendQuoteWhatsApp = async (q: Quote) => {
+    try {
+      await shareQuotePdfViaWhatsApp(q, business);
+    } catch (error) {
+      console.error('Could not share quote PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the quote PDF for WhatsApp.');
+    }
   };
 
-  const handleSendInvoiceWhatsApp = (inv: Invoice) => {
-    const balance = Math.max(0, inv.total - (inv.amount_paid || 0));
-    const text = createInvoiceWhatsAppText(
-      inv.customer_name,
-      business.business_name,
-      inv.invoice_number,
-      formatCurrency(balance > 0 ? balance : inv.total, business.currency),
-      formatDate(inv.due_date),
-      inv.payment_details
-    );
-    const link = buildWhatsAppLink(inv.customer_whatsapp || inv.customer_phone, text);
-    window.open(link, '_blank');
+  const handleSendInvoiceWhatsApp = async (inv: Invoice) => {
+    try {
+      await shareInvoicePdfViaWhatsApp(inv, business);
+    } catch (error) {
+      console.error('Could not share invoice PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the invoice PDF for WhatsApp.');
+    }
   };
 
   return (

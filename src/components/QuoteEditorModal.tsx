@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate, buildWhatsAppLink, createQuoteWhatsAppText, generateDocNumber } from '../utils/formatters';
 import { generateQuotePDF } from '../utils/pdfGenerator';
+import { shareQuotePdfViaWhatsApp } from '../utils/documentSharing';
 import { WhiteDocumentSheet } from './WhiteDocumentSheet';
 
 interface QuoteEditorModalProps {
@@ -403,18 +404,15 @@ export const QuoteEditorModal: React.FC<QuoteEditorModalProps> = ({
     }, 600);
   };
 
-  const handleWhatsAppShare = () => {
+  const handleWhatsAppShare = async () => {
     const compiled = buildCurrentQuote();
     onSaveQuote(compiled);
-    const msg = createQuoteWhatsAppText(
-      compiled.customer_name,
-      business.business_name,
-      compiled.quote_number,
-      formatCurrency(compiled.total, business.currency),
-      compiled.notes ? compiled.notes.substring(0, 100) : undefined
-    );
-    const link = buildWhatsAppLink(compiled.customer_whatsapp || compiled.customer_phone, msg);
-    window.open(link, '_blank');
+    try {
+      await shareQuotePdfViaWhatsApp(compiled, business);
+    } catch (error) {
+      console.error('Could not share quote PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the quote PDF for WhatsApp.');
+    }
   };
 
   const handleDownloadPDF = () => {

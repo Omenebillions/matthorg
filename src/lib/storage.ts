@@ -41,3 +41,7 @@ export async function uploadFileToR2(file: File): Promise<string> {
     throw err;
   }
 }
+
+export async function uploadPdfToR2(blob: Blob, fileName: string): Promise<string> {
+  return uploadFileToR2(new File([blob], fileName, { type: 'application/pdf' }));
+}

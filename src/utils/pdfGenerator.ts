@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import { BusinessProfile, Quote, Invoice } from '../types';
 import { formatCurrency, formatDate } from './formatters';
 
-export function generateQuotePDF(quote: Quote, business: BusinessProfile): void {
+export function createQuotePDF(quote: Quote, business: BusinessProfile): Blob {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -294,10 +294,20 @@ export function generateQuotePDF(quote: Quote, business: BusinessProfile): void 
     align: 'center',
   });
 
-  doc.save(`${quote.quote_number}_${quote.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  return doc.output('blob');
 }
 
-export function generateInvoicePDF(invoice: Invoice, business: BusinessProfile): void {
+export function generateQuotePDF(quote: Quote, business: BusinessProfile): void {
+  const blob = createQuotePDF(quote, business);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${quote.quote_number}_${quote.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export function createInvoicePDF(invoice: Invoice, business: BusinessProfile): Blob {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -565,5 +575,15 @@ export function generateInvoicePDF(invoice: Invoice, business: BusinessProfile):
     align: 'center',
   });
 
-  doc.save(`${invoice.invoice_number}_${invoice.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  return doc.output('blob');
+}
+
+export function generateInvoicePDF(invoice: Invoice, business: BusinessProfile): void {
+  const blob = createInvoicePDF(invoice, business);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${invoice.invoice_number}_${invoice.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
 }

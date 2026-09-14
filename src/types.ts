@@ -1,4 +1,5 @@
 export type PlanTier = 'free' | 'pro' | 'business';
+export type BillingInterval = 'monthly' | 'yearly';
 
 export interface User {
   id: string;

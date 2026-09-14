@@ -50,7 +50,8 @@ export function createQuoteWhatsAppText(
   businessName: string,
   quoteNumber: string,
   totalFormatted: string,
-  summaryNotes?: string
+  summaryNotes?: string,
+  documentUrl?: string
 ): string {
   return `Hello ${customerName},
 
@@ -60,6 +61,7 @@ Please find your quotation from *${businessName}*.
 💰 *Total: ${totalFormatted}*
 ${summaryNotes ? `\n_${summaryNotes}_\n` : ''}
 Please let us know if you would like to proceed or require any adjustments.
+${documentUrl ? `\n📎 *Download PDF:* ${documentUrl}` : ''}
 
 Thank you for your business!`;
 }
@@ -70,7 +72,8 @@ export function createInvoiceWhatsAppText(
   invoiceNumber: string,
   totalFormatted: string,
   dueDate: string,
-  paymentDetails?: string
+  paymentDetails?: string,
+  documentUrl?: string
 ): string {
   return `Hello ${customerName},
 
@@ -80,6 +83,7 @@ Please find your invoice from *${businessName}*.
 💵 *Amount Due: ${totalFormatted}*
 📅 *Due Date: ${dueDate}*
 ${paymentDetails ? `\n*Payment Details:*\n${paymentDetails}\n` : ''}
+${documentUrl ? `\n📎 *Download PDF:* ${documentUrl}\n` : ''}
 Thank you for your prompt payment!`;
 }
 

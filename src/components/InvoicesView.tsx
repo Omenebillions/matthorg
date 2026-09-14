@@ -17,10 +17,10 @@ import {
 import {
   formatCurrency,
   formatDate,
-  buildWhatsAppLink,
   createInvoiceWhatsAppText,
 } from '../utils/formatters';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { shareInvoicePdfViaWhatsApp } from '../utils/documentSharing';
 
 interface InvoicesViewProps {
   invoices: Invoice[];
@@ -79,18 +79,13 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     }
   };
 
-  const handleWhatsApp = (inv: Invoice) => {
-    const balance = Math.max(0, inv.total - (inv.amount_paid || 0));
-    const msg = createInvoiceWhatsAppText(
-      inv.customer_name,
-      business.business_name,
-      inv.invoice_number,
-      formatCurrency(balance > 0 ? balance : inv.total, business.currency),
-      formatDate(inv.due_date),
-      inv.payment_details
-    );
-    const link = buildWhatsAppLink(inv.customer_whatsapp || inv.customer_phone, msg);
-    window.open(link, '_blank');
+  const handleWhatsApp = async (inv: Invoice) => {
+    try {
+      await shareInvoicePdfViaWhatsApp(inv, business);
+    } catch (error) {
+      console.error('Could not share invoice PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the invoice PDF for WhatsApp.');
+    }
   };
 
   const handleCopyPayment = (inv: Invoice) => {

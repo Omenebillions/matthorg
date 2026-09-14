@@ -27,6 +27,7 @@ import {
   generateDocNumber,
 } from '../utils/formatters';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { shareInvoicePdfViaWhatsApp } from '../utils/documentSharing';
 import { WhiteDocumentSheet } from './WhiteDocumentSheet';
 
 interface InvoiceEditorModalProps {
@@ -214,19 +215,15 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
     generateInvoicePDF(compiled, business);
   };
 
-  const handleWhatsAppShare = () => {
+  const handleWhatsAppShare = async () => {
     const compiled = buildCurrentInvoice();
     onSaveInvoice(compiled);
-    const msg = createInvoiceWhatsAppText(
-      compiled.customer_name,
-      business.business_name,
-      compiled.invoice_number,
-      formatCurrency(balanceDue > 0 ? balanceDue : compiled.total, business.currency),
-      formatDate(compiled.due_date),
-      compiled.payment_details
-    );
-    const link = buildWhatsAppLink(compiled.customer_whatsapp || compiled.customer_phone, msg);
-    window.open(link, '_blank');
+    try {
+      await shareInvoicePdfViaWhatsApp(compiled, business);
+    } catch (error) {
+      console.error('Could not share invoice PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the invoice PDF for WhatsApp.');
+    }
   };
 
   const handleCopyPaymentText = () => {

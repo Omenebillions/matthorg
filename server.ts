@@ -7,10 +7,11 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { getPaystackPlan } from './api/paystack/plans';
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
@@ -101,8 +102,12 @@ app.get('/api/config', (req: Request, res: Response) => {
     return cleaned;
   };
 
-  const supabaseUrl = sanitize(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL);
-  const supabaseAnonKey = sanitize(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+  const supabaseUrl = sanitize(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
+  );
+  const supabaseAnonKey = sanitize(
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+  );
 
   res.json({
     supabaseUrl,
@@ -110,7 +115,76 @@ app.get('/api/config', (req: Request, res: Response) => {
     hasSupabase: Boolean(supabaseUrl && supabaseAnonKey),
     hasR2: Boolean(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID),
     hasGemini: Boolean(process.env.GEMINI_API_KEY),
+    hasPaystack: Boolean(process.env.PAYSTACK_SECRET_KEY),
   });
+});
+
+app.post('/api/paystack/initialize', async (req: Request, res: Response) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) return res.status(503).json({ error: 'Payments are not configured on the server.' });
+
+  const { email, plan, interval = 'monthly' } = req.body || {};
+  const selectedPlan = getPaystackPlan(plan, interval);
+  if (typeof email !== 'string' || !email.includes('@') || !selectedPlan) {
+    return res.status(400).json({ error: 'A valid email and paid plan are required.' });
+  }
+
+  try {
+    const origin = process.env.APP_URL || `http://${req.headers.host}`;
+    const response = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        amount: selectedPlan.amount,
+        currency: 'NGN',
+        plan: selectedPlan.code,
+        callback_url: `${origin}/?payment=paystack&plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`,
+        metadata: { mathorg_plan: plan, mathorg_interval: interval },
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.status || !data.data?.authorization_url) {
+      return res.status(502).json({ error: data.message || 'Paystack could not initialize the transaction.' });
+    }
+    return res.json({ authorizationUrl: data.data.authorization_url, reference: data.data.reference });
+  } catch (error) {
+    console.error('Paystack initialization failed:', error);
+    return res.status(502).json({ error: 'Unable to connect to Paystack.' });
+  }
+});
+
+app.get('/api/paystack/verify', async (req: Request, res: Response) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  const reference = typeof req.query.reference === 'string' ? req.query.reference : '';
+  if (!secretKey) return res.status(503).json({ error: 'Payments are not configured on the server.' });
+  if (!reference) return res.status(400).json({ error: 'A payment reference is required.' });
+
+  try {
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    });
+    const data = await response.json();
+    if (!response.ok || !data.status) {
+      return res.status(502).json({ error: data.message || 'Paystack could not verify the transaction.' });
+    }
+    const plan = data.data?.metadata?.mathorg_plan;
+    const interval = data.data?.metadata?.mathorg_interval || 'monthly';
+    const selectedPlan = getPaystackPlan(plan, interval);
+    const verified = data.data?.status === 'success'
+      && Boolean(selectedPlan)
+      && data.data?.amount === selectedPlan?.amount
+      && (!data.data?.plan || data.data.plan === selectedPlan?.code);
+    return res.json({
+      verified,
+      plan: verified ? plan : null,
+      interval: verified ? interval : null,
+      reference: data.data?.reference || reference,
+    });
+  } catch (error) {
+    console.error('Paystack verification failed:', error);
+    return res.status(502).json({ error: 'Unable to connect to Paystack.' });
+  }
 });
 
 // PWA / TWA Digital Asset Links for Android Trusted Web Activities
@@ -316,4 +390,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.VERCEL !== '1') {
+  startServer();
+}

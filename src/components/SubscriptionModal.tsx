@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, Zap, Sparkles, Shield, X, AlertCircle } from 'lucide-react';
-import { PlanTier, AppState } from '../types';
+import { BillingInterval, PlanTier, AppState } from '../types';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   state: AppState;
-  onSelectPlan: (plan: PlanTier) => void;
+  onSelectPlan: (plan: PlanTier, interval?: BillingInterval) => void;
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
@@ -15,6 +15,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   state,
   onSelectPlan,
 }) => {
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
   if (!isOpen) return null;
 
   const currentPlan = state.user.plan;
@@ -93,6 +94,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         </div>
 
         {/* Pricing Cards */}
+        <div className="flex justify-center mb-5">
+          <div className="inline-flex items-center gap-1 rounded-xl bg-[#F4F7FB] border border-[#E5E9F0] p-1">
+            {(['monthly', 'yearly'] as const).map((interval) => (
+              <button
+                key={interval}
+                onClick={() => setBillingInterval(interval)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition ${
+                  billingInterval === interval ? 'bg-[#0B192C] text-white' : 'text-[#5B6D85] hover:text-[#0B192C]'
+                }`}
+              >
+                {interval}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Free Tier */}
           <div
@@ -184,8 +200,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 Fast growth for active trades & contractors.
               </p>
               <div className="mb-4">
-                <span className="text-3xl font-extrabold text-[#0B192C]">₦2,500</span>
-                <span className="text-xs text-[#5B6D85]"> / month</span>
+                <span className="text-3xl font-extrabold text-[#0B192C]">{billingInterval === 'monthly' ? '₦2,500' : '₦25,000'}</span>
+                <span className="text-xs text-[#5B6D85]"> / {billingInterval === 'monthly' ? 'month' : 'year'}</span>
               </div>
               <ul className="space-y-2 text-xs text-[#5B6D85] mb-6">
                 <li className="flex items-center gap-2">
@@ -215,7 +231,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               </ul>
             </div>
             <button
-              onClick={() => onSelectPlan('pro')}
+              onClick={() => onSelectPlan('pro', billingInterval)}
               disabled={currentPlan === 'pro'}
               className={`w-full py-2.5 rounded-xl text-xs font-bold transition ${
                 currentPlan === 'pro'
@@ -250,8 +266,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 Full power for established SMEs & teams.
               </p>
               <div className="mb-4">
-                <span className="text-3xl font-extrabold text-[#0B192C]">₦7,500</span>
-                <span className="text-xs text-[#5B6D85]"> / month</span>
+                <span className="text-3xl font-extrabold text-[#0B192C]">{billingInterval === 'monthly' ? '₦7,500' : '₦75,000'}</span>
+                <span className="text-xs text-[#5B6D85]"> / {billingInterval === 'monthly' ? 'month' : 'year'}</span>
               </div>
               <ul className="space-y-2 text-xs text-[#5B6D85] mb-6">
                 <li className="flex items-center gap-2">
@@ -277,7 +293,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               </ul>
             </div>
             <button
-              onClick={() => onSelectPlan('business')}
+              onClick={() => onSelectPlan('business', billingInterval)}
               disabled={currentPlan === 'business'}
               className={`w-full py-2.5 rounded-xl text-xs font-semibold transition ${
                 currentPlan === 'business'

@@ -17,10 +17,9 @@ import {
 import {
   formatCurrency,
   formatDate,
-  buildWhatsAppLink,
-  createQuoteWhatsAppText,
 } from '../utils/formatters';
 import { generateQuotePDF } from '../utils/pdfGenerator';
+import { shareQuotePdfViaWhatsApp } from '../utils/documentSharing';
 
 interface QuotesViewProps {
   quotes: Quote[];
@@ -72,16 +71,13 @@ export const QuotesView: React.FC<QuotesViewProps> = ({
     }
   };
 
-  const handleWhatsApp = (q: Quote) => {
-    const text = createQuoteWhatsAppText(
-      q.customer_name,
-      business.business_name,
-      q.quote_number,
-      formatCurrency(q.total, business.currency),
-      q.notes ? q.notes.substring(0, 100) : undefined
-    );
-    const link = buildWhatsAppLink(q.customer_whatsapp || q.customer_phone, text);
-    window.open(link, '_blank');
+  const handleWhatsApp = async (q: Quote) => {
+    try {
+      await shareQuotePdfViaWhatsApp(q, business);
+    } catch (error) {
+      console.error('Could not share quote PDF:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not prepare the quote PDF for WhatsApp.');
+    }
   };
 
   return (

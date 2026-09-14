@@ -10,6 +10,7 @@ import {
   BusinessProfile,
   User,
   PlanTier,
+  BillingInterval,
 } from './types';
 import { initialData } from './data/initialData';
 import { DashboardView } from './components/DashboardView';
@@ -239,7 +240,9 @@ export function App() {
   // Load state from Supabase when user logs in
   useEffect(() => {
     if (session?.user?.id) {
-      supabase
+      ensureSupabase().then((client) => {
+        if (!client) return;
+        client
         .from('workspaces')
         .select('state')
         .eq('user_id', session.user.id)
@@ -248,7 +251,8 @@ export function App() {
           if (data && data.state) {
             setState(data.state as AppState);
           }
-        });
+          });
+      });
     }
   }, [session?.user?.id]);
 
@@ -256,7 +260,9 @@ export function App() {
   // Requires a 'workspaces' table with columns: id (uuid, pk), user_id (uuid), state (jsonb)
   useEffect(() => {
     if (session?.user?.id) {
-      supabase
+      ensureSupabase().then((client) => {
+        if (!client) return;
+        client
         .from('workspaces')
         .upsert(
           { user_id: session.user.id, state: state },
@@ -264,7 +270,8 @@ export function App() {
         )
         .then(({ error }) => {
           if (error) console.error('Failed to sync to Supabase:', error);
-        });
+          });
+      });
     }
   }, [state, session?.user?.id]);
 
@@ -588,12 +595,43 @@ export function App() {
     setState((prev) => ({ ...prev, user: updatedUser }));
   };
 
-  const handleSelectPlan = (newPlan: PlanTier) => {
-    setState((prev) => ({
-      ...prev,
-      user: { ...prev.user, plan: newPlan },
-    }));
+  const handleSelectPlan = async (newPlan: PlanTier, interval: BillingInterval = 'monthly') => {
+    if (newPlan === 'free') {
+      setState((prev) => ({ ...prev, user: { ...prev.user, plan: newPlan } }));
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: state.user.email, plan: newPlan, interval }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.authorizationUrl) throw new Error(data.error || 'Unable to start payment.');
+      window.location.assign(data.authorizationUrl);
+    } catch (error) {
+      console.error('Could not start Paystack payment:', error);
+      window.alert(error instanceof Error ? error.message : 'Unable to start payment.');
+    }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') !== 'paystack' || !params.get('reference')) return;
+
+    const reference = params.get('reference')!;
+    fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.verified || !['pro', 'business'].includes(data.plan)) {
+          throw new Error(data.error || 'Payment could not be verified.');
+        }
+        setState((prev) => ({ ...prev, user: { ...prev.user, plan: data.plan as PlanTier } }));
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
+      .catch((error) => console.error('Could not verify Paystack payment:', error));
+  }, []);
 
   const handleIncrementAICount = () => {
     setState((prev) => ({
