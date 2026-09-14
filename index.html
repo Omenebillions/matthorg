@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        const isVite = function(val) {
+          if (!val) return false;
+          try {
+            const str = typeof val === 'string' ? val : (val.message || val.stack || (typeof val === 'object' ? JSON.stringify(val) : String(val)));
+            return str.includes('[vite]') || str.includes('websocket') || str.includes('WebSocket');
+          } catch(e) {
+            return false;
+          }
+        };
+        ['log', 'warn', 'error', 'info', 'debug'].forEach(function(method) {
+          const original = console[method];
+          console[method] = function() {
+            for (let i = 0; i < arguments.length; i++) {
+              if (isVite(arguments[i])) return;
+            }
+            original.apply(console, arguments);
+          };
+        });
+        window.addEventListener('error', function(e) {
+          if (isVite(e.message) || isVite(e.filename) || (e.error && isVite(e.error.message))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function(e) {
+          if (isVite(e.reason)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mathorg — Quotations. Invoices. Follow Ups.</title>
+    <meta name="description" content="Quotations, invoices, and smart follow-ups for businesses and contractors with WhatsApp sharing and PWA support." />
+    <meta property="og:title" content="Mathorg — Quotations. Invoices. Follow Ups." />
+    <meta property="og:description" content="Quotations, invoices, and smart follow-ups for businesses and contractors with WhatsApp sharing and PWA support." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#F4F7FB" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Matthorg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F4F7FB] text-[#0B192C] font-sans antialiased selection:bg-[#3D74D9] selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
