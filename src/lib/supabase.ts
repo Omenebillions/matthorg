@@ -9,8 +9,14 @@ function cleanEnvVal(val?: string | null): string {
   return cleaned.replace(/\/+$/, '');
 }
 
-const initialUrl = cleanEnvVal(import.meta.env.VITE_SUPABASE_URL);
-const initialKey = cleanEnvVal(import.meta.env.VITE_SUPABASE_ANON_KEY);
+const initialUrl = cleanEnvVal(
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
+);
+const initialKey = cleanEnvVal(
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    || import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 export let supabase: SupabaseClient | null = (initialUrl && initialKey)
   ? createClient(initialUrl, initialKey, {

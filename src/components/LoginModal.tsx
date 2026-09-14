@@ -133,6 +133,11 @@ export function LoginModal({ isOpen, onClose, onGuestAccess, onLoginSuccess }: L
             setError('Account not recognized or password incorrect. You can click below to create this account now with 1 click:');
             return;
           }
+
+          if (msg.includes('invalid api key')) {
+            setError('Supabase is rejecting the public API key configured for this deployment. Update NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel with the anon/publishable key from the same Supabase project, then redeploy.');
+            return;
+          }
           
           if (msg.includes('rate limit') || msg.includes('email not confirmed')) {
             // Rate limit or unconfirmed email: grant direct access so user is never locked out!
