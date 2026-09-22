@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        // Handle Vite HMR websocket gracefully in sandboxed container environments where HMR is disabled
+        if (typeof window !== 'undefined') {
+          const NativeWebSocket = window.WebSocket;
+          if (NativeWebSocket) {
+            window.WebSocket = function(url, protocols) {
+              const isViteSocket =
+                protocols === 'vite-hmr' ||
+                protocols === 'vite-ping' ||
+                (typeof protocols === 'string' && protocols.toLowerCase().includes('vite')) ||
+                (Array.isArray(protocols) && protocols.some(function(p) { return typeof p === 'string' && p.toLowerCase().includes('vite'); })) ||
+                (typeof url === 'string' && (url.includes('token=') || url.includes('24678') || url.includes('vite-hmr')));
+
+              if (isViteSocket) {
+                const listeners = {};
+                const fakeSocket = {
+                  url: url,
+                  readyState: 1, // OPEN
+                  OPEN: 1,
+                  CLOSED: 3,
+                  CLOSING: 2,
+                  CONNECTING: 0,
+                  binaryType: 'blob',
+                  bufferedAmount: 0,
+                  extensions: '',
+                  protocol: typeof protocols === 'string' ? protocols : 'vite-hmr',
+                  addEventListener: function(type, callback) {
+                    if (!listeners[type]) listeners[type] = [];
+                    listeners[type].push(callback);
+                    if (type === 'open') {
+                      setTimeout(function() {
+                        try { callback({ type: 'open', target: fakeSocket }); } catch(e) {}
+                      }, 0);
+                    }
+                  },
+                  removeEventListener: function(type, callback) {
+                    if (!listeners[type]) return;
+                    listeners[type] = listeners[type].filter(function(cb) { return cb !== callback; });
+                  },
+                  dispatchEvent: function() { return true; },
+                  send: function() {},
+                  close: function() {
+                    fakeSocket.readyState = 3;
+                    (listeners['close'] || []).forEach(function(cb) {
+                      try { cb({ type: 'close', code: 1000, reason: 'Normal Closure', wasClean: true, target: fakeSocket }); } catch(e) {}
+                    });
+                  }
+                };
+                return fakeSocket;
+              }
+              return new NativeWebSocket(url, protocols);
+            };
+            try {
+              Object.assign(window.WebSocket, NativeWebSocket);
+              window.WebSocket.prototype = NativeWebSocket.prototype;
+            } catch(e) {}
+          }
+        }
+
+        const isVite = function(val) {
+          if (!val) return false;
+          try {
+            const str = typeof val === 'string' ? val : (val.message || val.stack || val.filename || (typeof val === 'object' ? JSON.stringify(val) : String(val)));
+            const lower = str.toLowerCase();
+            return lower.includes('vite') || lower.includes('websocket');
+          } catch(e) {
+            return false;
+          }
+        };
+
+        ['log', 'warn', 'error', 'info', 'debug'].forEach(function(method) {
+          const original = console[method];
+          console[method] = function() {
+            for (let i = 0; i < arguments.length; i++) {
+              if (isVite(arguments[i])) return;
+            }
+            original.apply(console, arguments);
+          };
+        });
+
+        window.addEventListener('error', function(e) {
+          if (isVite(e.message) || isVite(e.filename) || (e.error && isVite(e.error))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          if (isVite(e.reason)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MatthOrg — Get More Customers. Get More Done.</title>
+    <meta name="description" content="Find trusted professionals, post service requests, and grow your service business with MatthOrg." />
+    
+    <!-- OpenGraph Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MatthOrg" />
+    <meta property="og:title" content="MatthOrg — Get More Customers. Get More Done." />
+    <meta property="og:description" content="Find trusted professionals, post service requests, and grow your service business with MatthOrg." />
+    <meta property="og:image" content="/apple-touch-icon.png" />
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MatthOrg — Get More Customers. Get More Done." />
+    <meta name="twitter:description" content="Find trusted professionals, post service requests, and grow your service business with MatthOrg." />
+    <meta name="twitter:image" content="/apple-touch-icon.png" />
+
+    <!-- Schema.org Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://matthorg.com/#webapp",
+            "name": "MatthOrg",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "All",
+            "description": "Two-sided business commerce platform connecting customers with verified professionals and empowering businesses to manage leads, quotes, invoices, and sales intelligence.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://matthorg.com/#organization",
+            "name": "MatthOrg Technologies",
+            "url": "https://matthorg.com",
+            "logo": "https://matthorg.com/logo.png",
+            "description": "Global commerce and service operations platform for contractors, service providers, and growing enterprises."
+          }
+        ]
+      }
+    </script>
+
+    <meta name="theme-color" content="#F4F7FB" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MatthOrg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F4F7FB] text-[#0B192C] font-sans antialiased selection:bg-[#3D74D9] selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
