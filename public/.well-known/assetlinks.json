@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.matthorg.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:3A:D4:6D:C2:59:79:A1:0C:6D:23:2D:33:EE:51:7A:AC:70:C6:16:D4:2D:10:98:C0:DC"
+      ]
+    }
+  }
+]

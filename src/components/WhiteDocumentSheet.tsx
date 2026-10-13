@@ -1,0 +1,562 @@
+import React, { useState } from 'react';
+import { Quote, Invoice, BusinessProfile, QuoteItem, InvoiceItem, DocumentDesignTemplate } from '../types';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import {
+  FileText,
+  MapPin,
+  Phone,
+  MessageCircle,
+  Tag,
+  CreditCard,
+  Building2,
+  Download,
+  Share2,
+  CheckCircle2,
+  Minus,
+  Plus,
+  ChevronRight,
+  Sparkles,
+  Printer,
+  X,
+  Package,
+  Loader2,
+  Trash2,
+  ShieldCheck,
+  Palette,
+  Check,
+} from 'lucide-react';
+import { ASSETS } from '../assets/images';
+import { initializePaystackPayment } from '../lib/paystack';
+import {
+  generateQuotePDF,
+  generateInvoicePDF,
+  printQuotePDF,
+  printInvoicePDF,
+} from '../utils/pdfGenerator';
+
+interface WhiteDocumentSheetProps {
+  documentType: 'quote' | 'invoice';
+  quote?: Quote | null;
+  invoice?: Invoice | null;
+  business: BusinessProfile;
+  onClose?: () => void;
+  onSendWhatsApp?: () => void;
+  onDownloadPDF?: () => void;
+  onPrintPDF?: () => void;
+  onUpdateQuantity?: (itemId: string, newQty: number) => void;
+  onRemoveItem?: (itemId: string) => void;
+}
+
+export function WhiteDocumentSheet({
+  documentType,
+  quote,
+  invoice,
+  business,
+  onClose,
+  onSendWhatsApp,
+  onDownloadPDF,
+  onPrintPDF,
+  onUpdateQuantity,
+  onRemoveItem,
+}: WhiteDocumentSheetProps) {
+  const [orderMode, setOrderMode] = useState<'deliver' | 'pickup'>('deliver');
+  const [selectedDesign, setSelectedDesign] = useState<DocumentDesignTemplate>(
+    quote?.design_template || invoice?.design_template || business.invoice_design || 'corporate'
+  );
+
+  // Unified accessor
+  const docNumber = quote?.quote_number || invoice?.invoice_number || 'DOC-001';
+  const customerName = quote?.customer_name || invoice?.customer_name || 'Valued Customer';
+  const customerAddress =
+    quote?.customer_address || invoice?.customer_address || '18 Admiralty Way, Lekki Phase 1, Lagos';
+  const customerPhone = quote?.customer_whatsapp || quote?.customer_phone || invoice?.customer_phone || '';
+  const issueDate = quote?.issue_date || invoice?.issue_date || new Date().toISOString();
+  const rawItems = (quote?.items || invoice?.items || []) as (QuoteItem | InvoiceItem)[];
+
+  const subtotal = quote?.subtotal ?? invoice?.subtotal ?? 0;
+  const discountAmount = quote?.discount_amount ?? invoice?.discount_amount ?? 0;
+  const taxAmount = quote?.tax_amount ?? invoice?.tax_amount ?? 0;
+  const total = quote?.total ?? invoice?.total ?? 0;
+
+  const [paystackLoading, setPaystackLoading] = useState(false);
+  const [paystackError, setPaystackError] = useState<string | null>(null);
+
+  const handlePaystackPay = async () => {
+    if (!invoice) return;
+    setPaystackLoading(true);
+    setPaystackError(null);
+    try {
+      const email = invoice.customer_email || business.email || 'billing@mathorg.app';
+      const balance = Math.max(0, invoice.total - (invoice.amount_paid || 0));
+      const res = await initializePaystackPayment({
+        email,
+        amount: balance > 0 ? balance : invoice.total,
+        type: 'invoice',
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoice_number,
+        callbackUrl: window.location.origin + window.location.pathname,
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          customerName: invoice.customer_name,
+        },
+      });
+      if (res.success && res.authorization_url) {
+        window.location.href = res.authorization_url;
+      } else {
+        setPaystackError(res.error || 'Failed to initialize Paystack checkout.');
+      }
+    } catch (e: any) {
+      setPaystackError(e.message || 'Payment initiation failed.');
+    } finally {
+      setPaystackLoading(false);
+    }
+  };
+
+  const handleExecuteDownload = () => {
+    if (onDownloadPDF) {
+      onDownloadPDF();
+      return;
+    }
+    const modifiedQuote = quote ? { ...quote, design_template: selectedDesign } : null;
+    const modifiedInvoice = invoice ? { ...invoice, design_template: selectedDesign } : null;
+    if (documentType === 'quote' && modifiedQuote) {
+      generateQuotePDF(modifiedQuote, business);
+    } else if (documentType === 'invoice' && modifiedInvoice) {
+      generateInvoicePDF(modifiedInvoice, business);
+    }
+  };
+
+  const handleExecutePrint = () => {
+    if (onPrintPDF) {
+      onPrintPDF();
+      return;
+    }
+    const modifiedQuote = quote ? { ...quote, design_template: selectedDesign } : null;
+    const modifiedInvoice = invoice ? { ...invoice, design_template: selectedDesign } : null;
+    if (documentType === 'quote' && modifiedQuote) {
+      printQuotePDF(modifiedQuote, business);
+    } else if (documentType === 'invoice' && modifiedInvoice) {
+      printInvoicePDF(modifiedInvoice, business);
+    }
+  };
+
+  // Image resolver for line items
+  const getItemImage = (item: QuoteItem | InvoiceItem, idx: number) => {
+    if (item.image) return item.image;
+    const fallbacks = [ASSETS.salesDev, ASSETS.salesPackage, ASSETS.salesConsulting];
+    return fallbacks[idx % fallbacks.length];
+  };
+
+  // Design styles helper
+  const getHeaderTheme = () => {
+    switch (selectedDesign) {
+      case 'modern':
+        return {
+          wrapper: 'bg-white text-[#0B192C] border-b border-[#E5E9F0]',
+          badge: 'bg-slate-100 text-slate-800 border-slate-300',
+          titleColor: 'text-[#0B192C]',
+          taglineColor: 'text-[#5B6D85]',
+          accentBar: 'h-1.5 bg-[#0B192C] w-full',
+        };
+      case 'technical':
+        return {
+          wrapper: 'bg-gradient-to-r from-slate-900 to-cyan-950 text-white border-b-2 border-cyan-500',
+          badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 font-mono',
+          titleColor: 'text-white font-mono',
+          taglineColor: 'text-cyan-300/80',
+          accentBar: 'h-1 bg-cyan-400 w-full',
+        };
+      case 'emerald':
+        return {
+          wrapper: 'bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white border-b border-emerald-500/40',
+          badge: 'bg-emerald-500/30 text-emerald-300 border-emerald-400/50',
+          titleColor: 'text-white',
+          taglineColor: 'text-emerald-200/80',
+          accentBar: 'h-1.5 bg-gradient-to-r from-emerald-400 to-amber-300 w-full',
+        };
+      case 'corporate':
+      default:
+        return {
+          wrapper: 'bg-gradient-to-r from-[#0B192C] to-[#1E3E62] text-white border-b border-slate-700',
+          badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+          titleColor: 'text-white',
+          taglineColor: 'text-slate-300',
+          accentBar: 'h-1.5 bg-emerald-500 w-full',
+        };
+    }
+  };
+
+  const theme = getHeaderTheme();
+
+  return (
+    <div
+      id="white_document_sheet_container"
+      className="w-full max-w-lg mx-auto bg-white text-[#0B192C] rounded-[32px] shadow-2xl border border-[#E5E9F0] overflow-hidden flex flex-col font-sans"
+    >
+      {/* Top Navigation Bar */}
+      <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-[#E5E9F0] bg-white">
+        <div className="flex items-center gap-2.5">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[#F4F7FB] text-[#5B6D85] flex items-center justify-center hover:bg-[#E5E9F0] transition"
+              aria-label="Back"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          <h2 className="text-base font-extrabold tracking-tight text-[#0B192C]">
+            {documentType === 'quote' ? 'Quotation Order' : 'Tax Invoice'}
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#3D74D9]/10 text-[#3D74D9] border border-[#3D74D9]/20">
+            {docNumber}
+          </span>
+          <button
+            onClick={handleExecutePrint}
+            className="p-1.5 rounded-full text-[#5B6D85] hover:text-[#0B192C] hover:bg-[#F4F7FB] transition"
+            title="Print Document"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleExecuteDownload}
+            className="p-1.5 rounded-full text-[#5B6D85] hover:text-[#0B192C] hover:bg-[#F4F7FB] transition"
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Design Template Switcher */}
+      <div className="px-6 py-2 bg-slate-50 border-b border-[#E5E9F0] flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="flex items-center gap-1 text-[11px] font-bold text-[#5B6D85] shrink-0">
+          <Palette className="w-3.5 h-3.5 text-[#3D74D9]" />
+          <span>Design:</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {[
+            { id: 'corporate' as DocumentDesignTemplate, label: 'Corporate' },
+            { id: 'modern' as DocumentDesignTemplate, label: 'Modern' },
+            { id: 'technical' as DocumentDesignTemplate, label: 'Blueprint' },
+            { id: 'emerald' as DocumentDesignTemplate, label: 'Emerald' },
+          ].map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setSelectedDesign(d.id)}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition whitespace-nowrap ${
+                selectedDesign === d.id
+                  ? 'bg-[#0B192C] text-white shadow-xs'
+                  : 'bg-white text-[#5B6D85] hover:text-[#0B192C] border border-[#E5E9F0]'
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Branded Header Block Matching Selected Design */}
+      <div className={`${theme.wrapper} p-5 relative overflow-hidden`}>
+        <div className={theme.accentBar} />
+        <div className="pt-3 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {business.show_logo_on_docs !== false && business.logo ? (
+              <div className="w-12 h-12 rounded-xl bg-white p-1 border border-white/20 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                <img src={business.logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-white/10 text-white font-extrabold flex items-center justify-center shrink-0 border border-white/20">
+                {business.business_name ? business.business_name.substring(0, 2).toUpperCase() : 'MO'}
+              </div>
+            )}
+            <div>
+              <h3 className={`text-base font-extrabold ${theme.titleColor} truncate max-w-[200px]`}>
+                {business.business_name || 'MatthOrg Professional'}
+              </h3>
+              {business.show_address_on_docs !== false && business.address ? (
+                <p className={`text-[10px] ${theme.taglineColor} line-clamp-1`}>
+                  {business.address}
+                </p>
+              ) : (
+                <p className={`text-[10px] ${theme.taglineColor}`}>
+                  {business.tagline || 'Verified Contracting & Trade Services'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="text-right shrink-0">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badge}`}>
+              {documentType === 'quote' ? 'Official Quotation' : 'Tax Invoice'}
+            </span>
+            <div className={`text-[10px] mt-1 font-mono ${theme.taglineColor}`}>
+              {formatDate(issueDate)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sheet Content Area */}
+      <div className="p-6 overflow-y-auto space-y-5 flex-1 max-h-[70vh]">
+        {/* Customer & Address Block */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold tracking-tight text-[#0B192C]">Prepared For (Client)</span>
+            <span className="text-[10px] text-[#5B6D85] font-mono">{formatDate(issueDate)}</span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E5E9F0] space-y-2">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-[#3D74D9]/10 flex items-center justify-center text-[#3D74D9] shrink-0 mt-0.5">
+                <MapPin className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-[#0B192C] truncate">{customerName}</div>
+                {customerAddress && (
+                  <div className="text-[11px] text-[#5B6D85] leading-snug">{customerAddress}</div>
+                )}
+                {customerPhone && (
+                  <div className="text-[10px] text-[#3D74D9] font-mono mt-0.5 flex items-center gap-1">
+                    <Phone className="w-3 h-3" /> {customerPhone}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1 border-t border-[#E5E9F0]">
+              <span className="px-2 py-0.5 text-[10px] font-semibold text-[#3D74D9] bg-[#3D74D9]/10 rounded-lg border border-[#3D74D9]/20">
+                Verified Client
+              </span>
+              <span className="px-2 py-0.5 text-[10px] font-semibold text-[#5B6D85] bg-white rounded-lg border border-[#E5E9F0]">
+                {business.business_name}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Line Items with Remove Capability */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#0B192C]">Items & Scope ({rawItems.length})</span>
+            <span className="text-[11px] font-semibold text-[#3D74D9]">
+              {formatCurrency(subtotal, business.currency)}
+            </span>
+          </div>
+
+          {rawItems.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-dashed border-[#E5E9F0] text-center text-xs text-[#5B6D85]">
+              No line items added. Add items in editor to populate summary.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {rawItems.map((item, idx) => {
+                const img = getItemImage(item, idx);
+                return (
+                  <div
+                    key={item.id || idx}
+                    className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E5E9F0] flex items-center justify-between gap-3 hover:border-[#3D74D9]/40 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shrink-0 border border-[#E5E9F0] relative shadow-xs">
+                        <img
+                          src={img}
+                          alt={item.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-[#0B192C] truncate">{item.name || 'Custom Item'}</h4>
+                        <p className="text-[10px] text-[#5B6D85] truncate">
+                          {item.description || item.unit || 'Standard Unit'}
+                        </p>
+                        <div className="text-xs font-mono font-black text-[#0B192C] mt-0.5">
+                          {formatCurrency(item.unit_price, business.currency)} × {item.quantity}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stepper Control and Remove Button */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1 bg-white border border-[#E5E9F0] px-1.5 py-0.5 rounded-xl shadow-xs">
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity && onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          disabled={!onUpdateQuantity}
+                          className="text-[#5B6D85] hover:text-[#0B192C] disabled:opacity-40 p-0.5"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="font-mono text-xs font-bold text-[#0B192C] w-4 text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity && onUpdateQuantity(item.id, item.quantity + 1)}
+                          disabled={!onUpdateQuantity}
+                          className="text-[#5B6D85] hover:text-[#0B192C] disabled:opacity-40 p-0.5"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {onRemoveItem && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveItem(item.id)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                          title="Remove item from document"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Pricing Summary */}
+        <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E5E9F0] space-y-2.5">
+          <div className="text-xs font-bold text-[#0B192C]">Summary</div>
+
+          <div className="flex justify-between text-xs text-[#5B6D85]">
+            <span>Price Subtotal</span>
+            <span className="font-mono font-medium text-[#0B192C]">
+              {formatCurrency(subtotal, business.currency)}
+            </span>
+          </div>
+
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-xs text-emerald-700">
+              <span>Applied Discount</span>
+              <span className="font-mono font-bold">
+                -{formatCurrency(discountAmount, business.currency)}
+              </span>
+            </div>
+          )}
+
+          {business.show_tax_on_docs !== false && taxAmount > 0 && (
+            <div className="flex justify-between text-xs text-[#5B6D85]">
+              <span>{business.tax_name || 'VAT'} ({quote?.tax_rate ?? invoice?.tax_rate ?? business.tax_rate}%)</span>
+              <span className="font-mono font-medium text-[#0B192C]">
+                +{formatCurrency(taxAmount, business.currency)}
+              </span>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-[#E5E9F0] flex justify-between items-baseline">
+            <span className="text-xs font-extrabold uppercase tracking-wide text-[#0B192C]">Grand Total</span>
+            <span className="text-base font-black font-mono text-[#0B192C]">
+              {formatCurrency(total, business.currency)}
+            </span>
+          </div>
+        </div>
+
+        {/* Payment Method / Bank Details (Conditional) */}
+        {business.show_banking_on_docs !== false && (business.payment_details?.bank_name || business.payment_details?.account_number) && (
+          <div className="p-3.5 rounded-2xl bg-white border border-[#E5E9F0] space-y-1.5 shadow-xs">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-3.5 h-3.5 text-[#3D74D9]" />
+              <span className="text-xs font-bold text-[#0B192C]">Payment Instructions</span>
+            </div>
+            <div className="text-xs font-medium text-[#0B192C] font-mono">
+              Bank: {business.payment_details.bank_name || 'Designated Bank'}
+            </div>
+            <div className="text-xs font-mono text-[#5B6D85]">
+              Acct: {business.payment_details.account_number} ({business.payment_details.account_name})
+            </div>
+            {business.payment_details.notes && (
+              <div className="text-[10px] text-[#5B6D85] italic pt-1 border-t border-[#E5E9F0]">
+                {business.payment_details.notes}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Authorized Signature Block (Conditional) */}
+        {business.show_signature_on_docs !== false && (
+          <div className="p-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-slate-50 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5B6D85] block">
+                Authorized Sign-off
+              </span>
+              <span className="text-xs font-serif italic font-bold text-[#0B192C]">
+                {business.director_name || business.business_name}
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-full border border-emerald-500/40 bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Action Button */}
+      <div className="p-5 pt-3 bg-white border-t border-[#E5E9F0] space-y-2">
+        {paystackError && (
+          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            {paystackError}
+          </div>
+        )}
+
+        {documentType === 'invoice' && invoice && invoice.status !== 'Paid' && (
+          <button
+            type="button"
+            onClick={handlePaystackPay}
+            disabled={paystackLoading}
+            className="w-full py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            {paystackLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CreditCard className="w-4 h-4" />
+            )}
+            <span>Pay Now Online (Paystack)</span>
+          </button>
+        )}
+
+        {/* Print & Download Action Row */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleExecutePrint}
+            className="py-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-[#CBD5E1] text-[#0B192C] font-bold text-xs shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+            title="Print this document via printer"
+          >
+            <Printer className="w-4 h-4 text-slate-700" />
+            <span>Print Document</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExecuteDownload}
+            className="py-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-[#CBD5E1] text-[#0B192C] font-bold text-xs shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+            title="Download PDF file"
+          >
+            <Download className="w-4 h-4 text-slate-700" />
+            <span>Download PDF</span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={onSendWhatsApp}
+          className="w-full py-3.5 px-6 rounded-2xl bg-[#0B192C] hover:bg-[#152744] text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <MessageCircle className="w-4 h-4 text-[#25D366]" />
+          <span>{documentType === 'quote' ? 'Send Quotation on WhatsApp' : 'Send Invoice via WhatsApp'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+

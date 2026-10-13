@@ -1,0 +1,8 @@
+{
+  "name": "MatthOrg",
+  "description": "Find trusted professionals, post service requests, and grow your service business with MatthOrg.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
